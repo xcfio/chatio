@@ -21,7 +21,7 @@
         "fmt:test": "prettier --config=.prettierrc --check src"
     },
     "dependencies": {
-        "drizzle-orm": "1.0.0-beta.18-dc9676b",
+        "drizzle-orm": "1.0.0-beta.19-d95b7a4",
         "postgres": "^3.4.8",
         "socket.io": "^4.8.3",
         "typebox": "^1.1.6",
