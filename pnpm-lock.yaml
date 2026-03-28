@@ -48,8 +48,8 @@ importers:
         specifier: ^0.38.42
         version: 0.38.42
       drizzle-orm:
-        specifier: 1.0.0-beta.19-d95b7a4
-        version: 1.0.0-beta.19-d95b7a4(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.8)(typebox@1.1.6)(zod@4.3.6)
+        specifier: 1.0.0-beta.19
+        version: 1.0.0-beta.19(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.8)(typebox@1.1.6)(zod@4.3.6)
       fastify:
         specifier: ^5.8.3
         version: 5.8.3
@@ -152,8 +152,8 @@ importers:
   lib/schema:
     dependencies:
       drizzle-orm:
-        specifier: 1.0.0-beta.19-d95b7a4
-        version: 1.0.0-beta.19-d95b7a4(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.8)(typebox@1.1.6)(zod@4.3.6)
+        specifier: 1.0.0-beta.19
+        version: 1.0.0-beta.19(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.8)(typebox@1.1.6)(zod@4.3.6)
       postgres:
         specifier: ^3.4.8
         version: 3.4.8
@@ -2109,8 +2109,8 @@ packages:
     resolution: {integrity: sha512-ppmN8t5JsO3BsilQRpMqW4vI2K1esH+/GDRLhpwrQecmDsthTsk92MOnHVH72lwR8G900f6vQ3eKiB4d9UNNUw==}
     hasBin: true
 
-  drizzle-orm@1.0.0-beta.19-d95b7a4:
-    resolution: {integrity: sha512-bZZKKeoRKrMVU6zKTscjrSH0+WNb1WEi3N0Jl4wEyQ7aQpTgHzdYY6IJQ1P0M74HuSJVeX4UpkFB/S6dtqLEJg==}
+  drizzle-orm@1.0.0-beta.19:
+    resolution: {integrity: sha512-wL8FoHl9NRVYdrescFWyAVY5rNuEmbY4KDqO6Qo4RTVt1rYMbz7btq5Mhg91GN3x+qeUbQ83l9QkHYd4QmVTvg==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -5669,7 +5669,7 @@ snapshots:
       get-tsconfig: 4.13.6
       jiti: 2.6.1
 
-  drizzle-orm@1.0.0-beta.19-d95b7a4(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.8)(typebox@1.1.6)(zod@4.3.6):
+  drizzle-orm@1.0.0-beta.19(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.8)(typebox@1.1.6)(zod@4.3.6):
     dependencies:
       '@types/mssql': 9.1.9(@azure/core-client@1.10.1)
       mssql: 11.0.1(@azure/core-client@1.10.1)
