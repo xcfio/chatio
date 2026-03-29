@@ -4,7 +4,13 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Page } from "@/components/page"
-import { useState } from "react"
+import { ComponentProps, useEffect, useState } from "react"
+import { Static } from "typebox"
+import { Message, MessageOut } from "schema"
+import { Card } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { HoverCardTrigger, HoverCardContent, HoverCard } from "@/components/ui/hover-card"
 
 export default () => {
     return (
@@ -32,7 +38,7 @@ function MinWidth768() {
 }
 
 function MaxWidth768() {
-    const [isChat, setIsChat] = useState(false)
+    const [isChat, setIsChat] = useState(true)
 
     return (
         <Page footer={false} className="block md:hidden h-screen w-screen">
@@ -44,23 +50,67 @@ function MaxWidth768() {
 function ChatArea() {
     return (
         <>
-            <h4 className="mb-4 text-sm leading-none font-medium">Chat area</h4>
-            <ScrollArea className="rounded-md">
-                <>
-                    <div className="text-sm">Message: 1</div>
-                    <Separator className="my-2" />
-                </>
-                <>
-                    <div className="text-sm">Message: 2</div>
-                    <Separator className="my-2" />
-                </>
-            </ScrollArea>
+            <ChatHeader />
+            <ChatMessages />
+            <ChatInput />
         </>
     )
 }
-function ChatHeader() {}
-function ChatMessages() {}
-function ChatInput() {}
+
+function ChatHeader() {
+    return <p></p>
+}
+
+function ChatMessages({ className = "", ...props }: ComponentProps<"div">) {
+    const [userId, setUserId] = useState<string | null>(null)
+    const [messages, setMessages] = useState<Static<typeof MessageOut>>([])
+
+    useEffect(() => {
+        try {
+            const raw = globalThis.sessionStorage.getItem("user")
+            if (!raw) return
+
+            const parsed = JSON.parse(raw) as { id?: string }
+            setUserId(parsed.id ?? null)
+        } catch {
+            setUserId(null)
+        }
+    }, [])
+
+    return (
+        <div className="flex w-full flex-col gap-2">
+            {messages.map((message) => {
+                const isCurrentUser = message.messages.sender === userId
+
+                return (
+                    <HoverCard key={message.messages.id} openDelay={10} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                            <Card
+                                className={cn(
+                                    "block max-w-[45vw] px-3 py-2 mx-2",
+                                    isCurrentUser
+                                        ? "self-end bg-card-foreground text-card"
+                                        : "self-start bg-card text-card-foreground",
+                                    className
+                                )}
+                                {...props}
+                            >
+                                {message.messages.content}
+                            </Card>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="flex w-64 flex-col gap-0.5">
+                            <p>Created At: {new Date(message.messages.createdAt).toLocaleString()}</p>
+                        </HoverCardContent>
+                    </HoverCard>
+                )
+            })}
+        </div>
+    )
+}
+
+function ChatInput() {
+    return <p></p>
+}
 
 function UserArea() {
     return (
