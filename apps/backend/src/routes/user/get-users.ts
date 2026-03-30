@@ -1,5 +1,5 @@
-import { ErrorResponse, PublicUser } from "schema"
-import { and, or, ilike, desc } from "drizzle-orm"
+import { ErrorResponse, PublicUser, UUID } from "schema"
+import { and, or, ilike, desc, eq } from "drizzle-orm"
 import { toTypeBox, xcf } from "../../function"
 import { db, table } from "../../database"
 import { Type } from "typebox"
@@ -13,6 +13,7 @@ export default function GetUsers(fastify: Awaited<ReturnType<typeof main>>) {
             description: "Get list of all users",
             tags: ["Users"],
             querystring: Type.Object({
+                id: Type.Optional(Type.Array(UUID, { maxItems: 100, minItems: 1 })),
                 page: Type.Optional(Type.Integer({ default: 1, minimum: 1 })),
                 limit: Type.Optional(Type.Integer({ maximum: 100, minimum: 1 })),
                 search: Type.Optional(Type.String())
@@ -27,8 +28,12 @@ export default function GetUsers(fastify: Awaited<ReturnType<typeof main>>) {
         preHandler: fastify.auth,
         handler: async (request, reply) => {
             try {
-                const { page = 1, limit = 20, search } = request.query
+                const { page = 1, limit = 20, search, id } = request.query
                 const conditions = []
+
+                if (id) {
+                    conditions.push(or(...id.map((x) => eq(table.users.id, x))))
+                }
 
                 if (search) {
                     const il1 = ilike(table.users.username, `%${search}%`)
