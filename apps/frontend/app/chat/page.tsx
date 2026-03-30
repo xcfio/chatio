@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { Page } from "@/components/page"
 import { ComponentProps, useEffect, useState } from "react"
 import { Static } from "typebox"
-import { Message, MessageOut } from "schema"
+import { Message } from "schema"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -63,7 +63,7 @@ function ChatHeader() {
 
 function ChatMessages({ className = "", ...props }: ComponentProps<"div">) {
     const [userId, setUserId] = useState<string | null>(null)
-    const [messages, setMessages] = useState<Static<typeof MessageOut>>([])
+    const [messages, setMessages] = useState<Array<Static<typeof Message>>>([])
 
     useEffect(() => {
         try {
@@ -80,10 +80,10 @@ function ChatMessages({ className = "", ...props }: ComponentProps<"div">) {
     return (
         <div className="flex w-full flex-col gap-2">
             {messages.map((message) => {
-                const isCurrentUser = message.messages.sender === userId
+                const isCurrentUser = message.sender === userId
 
                 return (
-                    <HoverCard key={message.messages.id} openDelay={10} closeDelay={100}>
+                    <HoverCard key={message.id} openDelay={10} closeDelay={100}>
                         <HoverCardTrigger asChild>
                             <Card
                                 className={cn(
@@ -95,11 +95,11 @@ function ChatMessages({ className = "", ...props }: ComponentProps<"div">) {
                                 )}
                                 {...props}
                             >
-                                {message.messages.content}
+                                {message.content}
                             </Card>
                         </HoverCardTrigger>
                         <HoverCardContent className="flex w-64 flex-col gap-0.5">
-                            <p>Created At: {new Date(message.messages.createdAt).toLocaleString()}</p>
+                            <p>Created At: {new Date(message.createdAt).toLocaleString()}</p>
                         </HoverCardContent>
                     </HoverCard>
                 )

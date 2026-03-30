@@ -1,8 +1,8 @@
 import { eq, and, desc, lt, not, arrayContains, gt } from "drizzle-orm"
 import { CreateError, toTypeBox, xcf } from "../../function"
-import { Conversation, ErrorResponse, Message, MessageOut, PublicUser, UUID } from "schema"
+import { ErrorResponse, Message, UUID } from "schema"
 import { db, table } from "../../database"
-import { Static, Type } from "typebox"
+import { Type } from "typebox"
 import { main } from "../../"
 
 export default function GetMessages(fastify: Awaited<ReturnType<typeof main>>) {
@@ -20,7 +20,7 @@ export default function GetMessages(fastify: Awaited<ReturnType<typeof main>>) {
                 after: Type.Optional(Type.String({ format: "date-time" }))
             }),
             response: {
-                200: MessageOut,
+                200: Type.Array(Message, { maxItems: 100, minItems: 0 }),
                 400: ErrorResponse(400, "Bad request - invalid query parameters"),
                 404: ErrorResponse(404, "Not found - Conversation not found error"),
                 401: ErrorResponse(401, "Unauthorized - authentication required"),
@@ -35,7 +35,24 @@ export default function GetMessages(fastify: Awaited<ReturnType<typeof main>>) {
                 const { id: conversationId } = request.params
                 const { page = 1, limit = 50, before, after } = request.query
 
-                const whereConditions = [not(arrayContains(table.messages.status, ["deleted"]))]
+                const [conversation] = await db
+                    .select()
+                    .from(table.conversations)
+                    .where(
+                        and(
+                            eq(table.conversations.id, conversationId),
+                            arrayContains(table.conversations.users, [userId])
+                        )
+                    )
+
+                if (!conversation) {
+                    throw CreateError(404, "CONVERSATION_NOT_FOUND", "Conversation not found")
+                }
+
+                const whereConditions = [
+                    eq(table.messages.conversation, conversation.id),
+                    not(arrayContains(table.messages.status, ["deleted"]))
+                ]
 
                 if (before) {
                     const beforeDate = new Date(before)
@@ -54,35 +71,15 @@ export default function GetMessages(fastify: Awaited<ReturnType<typeof main>>) {
 
                 const offset = (page - 1) * limit
 
-                const query = await db
+                const messages = await db
                     .select()
-                    .from(table.conversations)
-                    .where(
-                        and(
-                            eq(table.conversations.id, conversationId),
-                            arrayContains(table.conversations.users, [userId])
-                        )
-                    )
-                    .leftJoin(table.messages, and(eq(table.messages.conversation, table.conversations.id)))
-                    .rightJoin(table.users, arrayContains(table.conversations.users, [userId]))
+                    .from(table.messages)
+                    .where(and(...whereConditions))
+                    .orderBy(desc(table.messages.createdAt))
+                    .limit(limit)
+                    .offset(offset)
 
-                if (!query) {
-                    throw CreateError(404, "CONVERSATION_NOT_FOUND", "Conversation not found")
-                }
-
-                const output: Static<typeof MessageOut> = []
-
-                for (const x of query) {
-                    if (!x.conversations || !x.messages || !x.users) continue
-                    const participant = x.conversations?.users.filter((id) => id !== userId).shift() ?? ""
-                    output.push({
-                        conversation: toTypeBox({ ...x.conversations, participant }),
-                        messages: toTypeBox(x.messages),
-                        user: toTypeBox(x.users)
-                    })
-                }
-
-                return reply.code(200).send(output)
+                return reply.code(200).send(messages.map((x) => toTypeBox(x)))
             } catch (error) {
                 await xcf(error)
             }

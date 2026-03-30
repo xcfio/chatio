@@ -1,15 +1,6 @@
 "use client"
 
-import {
-    AuthenticatedUser,
-    Conversation,
-    ErrorResponse,
-    LoginUser,
-    Message,
-    MessageOut,
-    PublicUser,
-    RegisterUser
-} from "schema"
+import { AuthenticatedUser, Conversation, ErrorResponse, LoginUser, Message, PublicUser, RegisterUser } from "schema"
 import { Value } from "typebox/value"
 import { Static } from "typebox"
 import ky from "ky"
@@ -115,7 +106,7 @@ export const ftc = {
         getAll: async (
             conversationId: string,
             options?: { page?: number; limit?: number; before?: string; after?: string }
-        ): Promise<Static<typeof MessageOut> | string> => {
+        ): Promise<Array<Static<typeof Message>> | string> => {
             try {
                 const params = new URLSearchParams()
 
@@ -143,7 +134,7 @@ export const ftc = {
                 const queryString = params.toString() ? `?${params.toString()}` : ""
                 const data = await api
                     .get(`conversations/${conversationId}/messages${queryString}`)
-                    .json<Static<typeof MessageOut>>()
+                    .json<Array<Static<typeof Message>>>()
 
                 return isError(data) ? data.message : data
             } catch (error) {

@@ -1,6 +1,4 @@
 import { MessageSelect } from "../table"
-import { Conversation } from "./conversations"
-import { PublicUser } from "./user"
 import { Date, UUID } from "./utility"
 import Type from "typebox"
 
@@ -15,11 +13,3 @@ export const Message = Type.Object({
     createdAt: Date,
     updatedAt: Date
 })
-
-export const MessageOut = Type.Array(
-    Type.Object({
-        conversation: Conversation,
-        messages: Message,
-        user: PublicUser
-    })
-)
