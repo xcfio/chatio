@@ -7,17 +7,17 @@ import { main } from "../../"
 
 export default function GetUsers(fastify: Awaited<ReturnType<typeof main>>) {
     fastify.route({
-        method: "GET",
+        method: "POST",
         url: "/users",
         schema: {
             description: "Get list of all users",
             tags: ["Users"],
             querystring: Type.Object({
-                id: Type.Optional(Type.Array(UUID, { maxItems: 100, minItems: 1 })),
                 page: Type.Optional(Type.Integer({ default: 1, minimum: 1 })),
                 limit: Type.Optional(Type.Integer({ maximum: 100, minimum: 1 })),
                 search: Type.Optional(Type.String())
             }),
+            body: Type.Optional(Type.Array(UUID, { maxItems: 100, minItems: 1 })),
             response: {
                 200: Type.Array(PublicUser, { maxItems: 100, minItems: 0 }),
                 401: ErrorResponse(401, "Unauthorized - authentication required"),
@@ -28,7 +28,8 @@ export default function GetUsers(fastify: Awaited<ReturnType<typeof main>>) {
         preHandler: fastify.auth,
         handler: async (request, reply) => {
             try {
-                const { page = 1, limit = 20, search, id } = request.query
+                const { page = 1, limit = 20, search } = request.query
+                const id = request.body
                 const conditions = []
 
                 if (id) {

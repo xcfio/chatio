@@ -132,8 +132,17 @@ function Chat() {
     if (error) return <Error error={error} />
     if (loading) return <Loading />
 
+    if (!messages.length) {
+        setLoading(false)
+        return (
+            <div className="flex h-full w-full items-center justify-center">
+                <p className="text-muted-foreground">Select a conversation to start chatting.</p>
+            </div>
+        )
+    }
+
     return (
-        <div className="flex w-full flex-col gap-2 overflow-y-auto py-2">
+        <div className="flex w-full flex-col gap-2 py-2">
             {messages.map((message) => {
                 const isCurrentUser = message.sender === user?.id
 
@@ -162,44 +171,54 @@ function Chat() {
 }
 
 function User() {
+    const [loading, setLoading] = useState<boolean>(true)
+    const [error, setError] = useState<string | null>(null)
     const { conversations } = useContext(ConversationsContext) ?? {}
     const { user } = useContext(UserContext) ?? {}
 
     const [users, setUsers] = useState<Array<Static<typeof PublicUser>>>([])
 
     const retrieveUsers = async () => {
-        const set = new Set<Static<typeof PublicUser>>()
         const users = Array.from(new Set(conversations?.map((x) => x.participant)))
+        const res = await ftc.user.getAll({ id: users })
 
-        for (const id of users) {
-            const res = await ftc.user.getAll
-        }
+        if (typeof res === "string") return setError(res)
+        setUsers(res)
+        setLoading(false)
     }
 
     useEffect(() => {
         retrieveUsers()
     }, [])
 
+    if (error) return <Error error={error} />
+    if (loading) return <Loading />
+
     return (
         <ScrollArea className="rounded-md">
             {users.map((user, index) => {
                 return (
-                    <div key={index} className="flex flex-col">
-                        <Avatar>
-                            {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
-                            <AvatarFallback>
-                                {user.name.includes(" ")
-                                    ? user.name
-                                          .split(" ")
-                                          .map((w) => w[0])
-                                          .join("")
-                                          .slice(0, 2)
-                                          .toUpperCase()
-                                    : user.name?.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                            Z{/* <AvatarBadge className="bg-green-600 dark:bg-green-800" /> */}
-                        </Avatar>
-                        <p>{user.name}</p>
+                    <div key={index} className="flex">
+                        <Card
+                            role="button"
+                            className="flex flex-row items-center gap-2 p-2 hover:bg-card/50 cursor-pointer"
+                        >
+                            <Avatar>
+                                {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
+                                <AvatarFallback>
+                                    {user.name.includes(" ")
+                                        ? user.name
+                                              .split(" ")
+                                              .map((w) => w[0])
+                                              .join("")
+                                              .slice(0, 2)
+                                              .toUpperCase()
+                                        : user.name?.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                                {/* <AvatarBadge className="bg-green-600 dark:bg-green-800" /> */}
+                            </Avatar>
+                            <p>{user.name}</p>
+                        </Card>
                     </div>
                 )
             })}

@@ -192,20 +192,23 @@ export const ftc = {
                 return "An error occurred"
             }
         },
-        getAll: async (options?: {
-            page?: number
-            limit?: number
-            search?: string
-        }): Promise<Array<Static<typeof PublicUser>> | string> => {
+        getAll: async (
+            options: {
+                id?: Array<string>
+                page?: number
+                limit?: number
+                search?: string
+            } = {}
+        ): Promise<Array<Static<typeof PublicUser>> | string> => {
             try {
                 const params = new URLSearchParams()
 
-                if (typeof options?.page === "number" && Number.isFinite(options.page) && options.page >= 1) {
+                if (typeof options.page === "number" && Number.isFinite(options.page) && options.page >= 1) {
                     params.set("page", String(options.page))
                 }
 
                 if (
-                    typeof options?.limit === "number" &&
+                    typeof options.limit === "number" &&
                     Number.isFinite(options.limit) &&
                     options.limit >= 1 &&
                     options.limit <= 100
@@ -213,12 +216,14 @@ export const ftc = {
                     params.set("limit", String(options.limit))
                 }
 
-                if (typeof options?.search === "string" && options.search.trim()) {
+                if (typeof options.search === "string" && options.search.trim()) {
                     params.set("search", options.search)
                 }
 
                 const queryString = params.toString() ? `?${params.toString()}` : ""
-                const data = await api.get(`users${queryString}`).json<Array<Static<typeof PublicUser>>>()
+                const data = await api
+                    .get(`users${queryString}`, { json: options.id ?? null })
+                    .json<Array<Static<typeof PublicUser>>>()
                 return isError(data) ? data.message : data
             } catch (error) {
                 console.log(error)
