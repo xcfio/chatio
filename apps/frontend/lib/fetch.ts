@@ -71,9 +71,12 @@ export const ftc = {
                 return "An error occurred"
             }
         },
-        getOne: async (id: string): Promise<Static<typeof Conversation> | string> => {
+        getOne: async (
+            id: string,
+            type: "conversation" | "user" = "conversation"
+        ): Promise<Static<typeof Conversation> | string> => {
             try {
-                const data = await api.get(`conversations/${id}`).json<Static<typeof Conversation>>()
+                const data = await api.get(`conversations/${id}?type=${type}`).json<Static<typeof Conversation>>()
                 return isError(data) ? data.message : data
             } catch (error) {
                 console.log(error)
@@ -222,7 +225,7 @@ export const ftc = {
 
                 const queryString = params.toString() ? `?${params.toString()}` : ""
                 const data = await api
-                    .get(`users${queryString}`, { json: options.id ?? null })
+                    .post(`users${queryString}`, { json: options.id ?? null })
                     .json<Array<Static<typeof PublicUser>>>()
                 return isError(data) ? data.message : data
             } catch (error) {

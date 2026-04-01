@@ -1,40 +1,70 @@
 "use client"
 
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Page } from "@/components/page"
 import { createContext, Dispatch, SetStateAction, useContext, useEffect, useState } from "react"
-import { Static } from "typebox"
-import { AuthenticatedUser, Conversation, Message, PublicUser } from "schema"
-import { Card } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { HoverCardTrigger, HoverCardContent, HoverCard } from "@/components/ui/hover-card"
-import { AlertCircleIcon, LoaderCircle } from "lucide-react"
-import { ftc } from "@/lib/fetch"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import Value from "typebox/value"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AuthenticatedUser, Conversation, Message, PublicUser } from "schema"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+    AlertCircleIcon,
+    HelpCircle,
+    LoaderCircle,
+    MessageCircle,
+    MonitorIcon,
+    MoonIcon,
+    PaletteIcon,
+    Search,
+    Settings,
+    Star,
+    SunIcon,
+    UserCircle
+} from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import { Page } from "@/components/page"
+import { ftc } from "@/lib/fetch"
+import { cn } from "@/lib/utils"
+import { Static } from "typebox"
+import Value from "typebox/value"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuShortcut,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import { useTheme } from "next-themes"
+import { useRouter } from "next/navigation"
+import { Github } from "@/components/icon/github"
 
-export const UserContext = createContext<{
-    user: Static<typeof AuthenticatedUser> | null
-    setUser: Dispatch<SetStateAction<Static<typeof AuthenticatedUser> | null>>
-} | null>(null)
+export const UserContext = createContext<
+    [Static<typeof AuthenticatedUser> | null, Dispatch<SetStateAction<Static<typeof AuthenticatedUser> | null>>] | null
+>(null)
 
-export const CurrentConversationContext = createContext<{
-    conversation: Static<typeof Conversation> | null
-    setConversation: Dispatch<SetStateAction<Static<typeof Conversation> | null>>
-} | null>(null)
+export const CurrentConversationContext = createContext<
+    [Static<typeof Conversation> | null, Dispatch<SetStateAction<Static<typeof Conversation> | null>>] | null
+>(null)
 
-export const ConversationsContext = createContext<{
-    conversations: Array<Static<typeof Conversation>> | null
-    setConversations: Dispatch<SetStateAction<Array<Static<typeof Conversation>> | null>>
-} | null>(null)
+export const ConversationsContext = createContext<
+    | [Array<Static<typeof Conversation>> | null, Dispatch<SetStateAction<Array<Static<typeof Conversation>> | null>>]
+    | null
+>(null)
 
-export const MessageContext = createContext<{
-    messages: Array<Static<typeof Message>>
-    setMessages: Dispatch<SetStateAction<Array<Static<typeof Message>>>>
-} | null>(null)
+export const MessageContext = createContext<
+    [Array<Static<typeof Message>>, Dispatch<SetStateAction<Array<Static<typeof Message>>>>] | null
+>(null)
 
 export default () => {
     const [conversations, setConversations] = useState<Array<Static<typeof Conversation>> | null>(null)
@@ -92,12 +122,10 @@ export default () => {
     if (error) return <Error error={error} />
     if (loading) return <Loading />
     return (
-        <UserContext.Provider value={{ user, setUser }}>
-            <ConversationsContext.Provider value={{ conversations, setConversations }}>
-                <CurrentConversationContext.Provider
-                    value={{ conversation: currentConversation, setConversation: setCurrentConversation }}
-                >
-                    <MessageContext.Provider value={{ messages, setMessages }}>
+        <UserContext.Provider value={[user, setUser]}>
+            <ConversationsContext.Provider value={[conversations, setConversations]}>
+                <CurrentConversationContext.Provider value={[currentConversation, setCurrentConversation]}>
+                    <MessageContext.Provider value={[messages, setMessages]}>
                         {width >= 768 ? (
                             <Page footer={false} className="hidden md:block h-screen w-screen">
                                 <ResizablePanelGroup orientation="horizontal" className="border">
@@ -123,17 +151,10 @@ export default () => {
 }
 
 function Chat() {
-    const [loading, setLoading] = useState<boolean>(true)
-    const [error, setError] = useState<string | null>(null)
-
-    const messages = useContext(MessageContext)?.messages ?? []
-    const user = useContext(UserContext)?.user ?? null
-
-    if (error) return <Error error={error} />
-    if (loading) return <Loading />
+    const [messages] = useContext(MessageContext) ?? [[], () => {}]
+    const [user] = useContext(UserContext) ?? [null, () => {}]
 
     if (!messages.length) {
-        setLoading(false)
         return (
             <div className="flex h-full w-full items-center justify-center">
                 <p className="text-muted-foreground">Select a conversation to start chatting.</p>
@@ -171,20 +192,29 @@ function Chat() {
 }
 
 function User() {
-    const [loading, setLoading] = useState<boolean>(true)
-    const [error, setError] = useState<string | null>(null)
-    const { conversations } = useContext(ConversationsContext) ?? {}
-    const { user } = useContext(UserContext) ?? {}
-
+    const [currentConversation, setCurrentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
+    const [conversations, setConversations] = useContext(ConversationsContext) ?? [[], () => {}]
     const [users, setUsers] = useState<Array<Static<typeof PublicUser>>>([])
+    const [error, setError] = useState<string | null>(null)
+    const [loading, setLoading] = useState<boolean>(true)
+    const { theme, setTheme } = useTheme()
+    const router = useRouter()
 
-    const retrieveUsers = async () => {
+    async function retrieveUsers() {
         const users = Array.from(new Set(conversations?.map((x) => x.participant)))
         const res = await ftc.user.getAll({ id: users })
 
         if (typeof res === "string") return setError(res)
         setUsers(res)
         setLoading(false)
+    }
+
+    async function handleConversationSelect(id: string) {
+        const res = await ftc.conversations.getOne(id, "user")
+        if (typeof res === "string") {
+            return setError(res)
+        }
+        setCurrentConversation(res)
     }
 
     useEffect(() => {
@@ -195,34 +225,118 @@ function User() {
     if (loading) return <Loading />
 
     return (
-        <ScrollArea className="rounded-md">
-            {users.map((user, index) => {
-                return (
-                    <div key={index} className="flex">
-                        <Card
-                            role="button"
-                            className="flex flex-row items-center gap-2 p-2 hover:bg-card/50 cursor-pointer"
-                        >
-                            <Avatar>
-                                {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
-                                <AvatarFallback>
-                                    {user.name.includes(" ")
-                                        ? user.name
-                                              .split(" ")
-                                              .map((w) => w[0])
-                                              .join("")
-                                              .slice(0, 2)
-                                              .toUpperCase()
-                                        : user.name?.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                                {/* <AvatarBadge className="bg-green-600 dark:bg-green-800" /> */}
-                            </Avatar>
-                            <p>{user.name}</p>
-                        </Card>
-                    </div>
-                )
-            })}
-        </ScrollArea>
+        <div className="flex flex-col">
+            <div className="bg-muted rounded-tl-md rounded-tr-md p-4">
+                <div className="flex flex-row justify-between  mb-1">
+                    <h1 className="font-comfortaa text-2xl mb-2.5 tracking-tight text-foreground">Chatio</h1>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Settings
+                                    role="button"
+                                    className="text-muted-foreground hover:text-muted-foreground/50"
+                                />
+                                <span className="sr-only">Settings</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem>
+                                    <UserCircle />
+                                    Account
+                                </DropdownMenuItem>
+                                <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger>
+                                        <PaletteIcon />
+                                        Theme
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuPortal>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuGroup>
+                                                <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+                                                <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                                                    <DropdownMenuRadioItem value="light">
+                                                        <SunIcon />
+                                                        Light
+                                                    </DropdownMenuRadioItem>
+                                                    <DropdownMenuRadioItem value="dark">
+                                                        <MoonIcon />
+                                                        Dark
+                                                    </DropdownMenuRadioItem>
+                                                    <DropdownMenuRadioItem value="system">
+                                                        <MonitorIcon />
+                                                        System
+                                                    </DropdownMenuRadioItem>
+                                                </DropdownMenuRadioGroup>
+                                            </DropdownMenuGroup>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuPortal>
+                                </DropdownMenuSub>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem onClick={() => router.push("/support")}>
+                                    <HelpCircle />
+                                    Support
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push("/credits")}>
+                                    <Star />
+                                    Credits
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem onClick={() => router.push("https://github.com/xcfio/chatio")}>
+                                    <Github />
+                                    GitHub
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push("https://discord.com/invite/FaCCaFM74Q")}>
+                                    <MessageCircle />
+                                    Discord
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+                {/* <Separator className="my-2" /> */}
+                <div className="relative">
+                    <Input className="pr-10" placeholder="Search user..." />
+                    <Search
+                        role="button"
+                        className="absolute scale-80 right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground/50"
+                    />
+                </div>
+            </div>
+            <ScrollArea className="rounded-md">
+                {users.map((user, index) => {
+                    return (
+                        <div key={index} className="grid">
+                            <Card
+                                role="button"
+                                className="flex flex-row items-center gap-2 p-2 m-2 hover:bg-card/50 cursor-pointer"
+                                onClick={() => handleConversationSelect(user.id)}
+                            >
+                                <Avatar>
+                                    {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
+                                    <AvatarFallback>
+                                        {user.name.includes(" ")
+                                            ? user.name
+                                                  .split(" ")
+                                                  .map((w) => w[0])
+                                                  .join("")
+                                                  .slice(0, 2)
+                                                  .toUpperCase()
+                                            : user.name?.slice(0, 2).toUpperCase()}
+                                    </AvatarFallback>
+                                    {/* <AvatarBadge className="bg-green-600 dark:bg-green-800" /> */}
+                                </Avatar>
+                                <p>{user.name}</p>
+                            </Card>
+                        </div>
+                    )
+                })}
+            </ScrollArea>
+        </div>
     )
 }
 

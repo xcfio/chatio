@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Comfortaa, Inter } from "next/font/google"
 import { ThemeProvider } from "next-themes"
 import "./globals.css"
 
-const comfortaa = Inter({ subsets: ["latin"], variable: "--font-sans" })
+const font = Inter({ subsets: ["latin"], variable: "--font-sans" })
+const comfortaa = Comfortaa({ subsets: ["latin"], variable: "--font-comfortaa" })
 
 export const metadata: Metadata = {
     title: "Chatio - Real-time Chat Application",
@@ -40,7 +41,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <meta name="theme-color" content={"#ffffff"} />
             </head>
 
-            <body className={`${comfortaa.variable} antialiased`}>
+            <body className={`${font.variable} ${comfortaa.variable} antialiased`}>
                 <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
                     {children}
                 </ThemeProvider>
