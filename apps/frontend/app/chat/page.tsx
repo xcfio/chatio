@@ -30,6 +30,7 @@ import {
     Paintbrush,
     PaletteIcon,
     Search,
+    Send,
     SettingsIcon,
     Star,
     SunIcon,
@@ -84,6 +85,7 @@ import {
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb"
 
+export const ChatContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 export const DialogContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 
 export const UserContext = createContext<
@@ -179,42 +181,56 @@ export default () => {
     if (error) return <Error error={error} />
     if (loading) return <Loading />
     return (
-        <DialogContext.Provider value={[isDialogOpen, setDialogOpen]}>
-            <UserContext.Provider value={[user, setUser]}>
-                <MembersContext.Provider value={[members, setMembers]}>
-                    <ConversationsContext.Provider value={[conversations, setConversations]}>
-                        <CurrentConversationContext.Provider value={[currentConversation, setCurrentConversation]}>
-                            <MessageContext.Provider value={[messages, setMessages]}>
-                                {width >= 768 ? (
-                                    <Page footer={false} className="hidden md:block h-screen w-screen">
-                                        <ResizablePanelGroup orientation="horizontal" className="border">
-                                            <ResizablePanel defaultSize="35%" minSize="20%">
-                                                <User />
-                                            </ResizablePanel>
-                                            <ResizableHandle withHandle />
-                                            <ResizablePanel defaultSize="65%" minSize="30%">
-                                                <Chat />
-                                            </ResizablePanel>
-                                        </ResizablePanelGroup>
-                                    </Page>
-                                ) : (
-                                    <Page footer={false} className="block md:hidden h-screen w-screen">
-                                        {isChat ? <Chat /> : <User />}
-                                    </Page>
-                                )}
-                            </MessageContext.Provider>
-                        </CurrentConversationContext.Provider>
-                    </ConversationsContext.Provider>
-                </MembersContext.Provider>
-            </UserContext.Provider>{" "}
-        </DialogContext.Provider>
+        <ChatContext.Provider value={[isChat, setIsChat]}>
+            <DialogContext.Provider value={[isDialogOpen, setDialogOpen]}>
+                <UserContext.Provider value={[user, setUser]}>
+                    <MembersContext.Provider value={[members, setMembers]}>
+                        <ConversationsContext.Provider value={[conversations, setConversations]}>
+                            <CurrentConversationContext.Provider value={[currentConversation, setCurrentConversation]}>
+                                <MessageContext.Provider value={[messages, setMessages]}>
+                                    {width >= 768 ? (
+                                        <Page footer={false} className="hidden md:block h-screen w-screen">
+                                            <ResizablePanelGroup orientation="horizontal" className="border">
+                                                <ResizablePanel defaultSize="35%" minSize="20%">
+                                                    <User />
+                                                </ResizablePanel>
+                                                <ResizableHandle withHandle />
+                                                <ResizablePanel defaultSize="65%" minSize="30%">
+                                                    <Chat />
+                                                </ResizablePanel>
+                                            </ResizablePanelGroup>
+                                        </Page>
+                                    ) : (
+                                        <Page footer={false} className="block md:hidden h-screen w-screen">
+                                            {isChat ? <Chat /> : <User />}
+                                        </Page>
+                                    )}
+                                </MessageContext.Provider>
+                            </CurrentConversationContext.Provider>
+                        </ConversationsContext.Provider>
+                    </MembersContext.Provider>
+                </UserContext.Provider>
+            </DialogContext.Provider>
+        </ChatContext.Provider>
     )
 }
 
 function Chat() {
+    const [conversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
     const [members] = useContext(MembersContext) ?? [[], () => {}]
     const [messages] = useContext(MessageContext) ?? [[], () => {}]
     const [user] = useContext(UserContext) ?? [null, () => {}]
+
+    const opponent = members.find((m) => m.id === conversation?.participant)
+    const displayName = opponent?.name ?? user?.name ?? "Unknown User"
+    const fallbackInitials = displayName.includes(" ")
+        ? displayName
+              .split(" ")
+              .map((w) => w[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()
+        : displayName.slice(0, 2).toUpperCase()
 
     if (!messages.length) {
         return (
@@ -225,58 +241,82 @@ function Chat() {
     }
 
     return (
-        <div className="flex w-full flex-col gap-2 py-2">
-            {messages.map((message) => {
-                const isCurrentUser = message.sender === user?.id
+        <div className="flex flex-col h-full w-full">
+            <div className="flex items-end gap-4 rounded-b-2xl bg-muted p-4">
+                <Avatar className="scale-125">
+                    {opponent?.avatar && <AvatarImage src={opponent.avatar} alt={displayName} />}
+                    <AvatarFallback>{fallbackInitials}</AvatarFallback>
+                    {/* <AvatarBadge className="bg-green-600 dark:bg-green-800" /> */}
+                </Avatar>
+                <p className="font-comfortaa tracking-tight">{displayName}</p>
+            </div>
+            <ScrollArea className="h-full w-full px-2 py-2">
+                {messages.flat().map((message) => {
+                    const isCurrentUser = message.sender === user?.id
 
-                return (
-                    <HoverCard key={message.id} openDelay={10} closeDelay={100}>
-                        <HoverCardTrigger asChild>
-                            <Card
-                                className={cn(
-                                    "block max-w-[45vw] px-3 py-2 mx-2",
-                                    isCurrentUser
-                                        ? "self-end bg-card-foreground text-card"
-                                        : "self-start bg-card text-card-foreground"
-                                )}
-                            >
-                                {message.content}
-                            </Card>
-                        </HoverCardTrigger>
-                        <HoverCardContent className="flex w-64 flex-col gap-0.5 text-xs">
-                            {!isCurrentUser && (
-                                <p>Sent by: {members.find((u) => u.id === message.sender)?.name ?? "Unknown User"}</p>
-                            )}
-                            {message.updatedAt && message.updatedAt !== message.createdAt && (
-                                <p>Updated At: {new Date(message.updatedAt).toLocaleString()}</p>
-                            )}
-                            <p>Created At: {new Date(message.createdAt).toLocaleString()}</p>
-                        </HoverCardContent>
-                    </HoverCard>
-                )
-            })}
+                    return (
+                        <div className="py-2 w-full flex flex-col" key={message.id}>
+                            <HoverCard openDelay={10} closeDelay={100}>
+                                <HoverCardTrigger asChild>
+                                    <Card
+                                        className={cn(
+                                            "block max-w-[45vw] px-3 py-2 mx-2",
+                                            isCurrentUser
+                                                ? "self-end bg-card-foreground text-card"
+                                                : "self-start bg-card text-card-foreground"
+                                        )}
+                                    >
+                                        {message.content}
+                                    </Card>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="flex w-64 flex-col gap-0.5 text-xs">
+                                    {!isCurrentUser && (
+                                        <p>
+                                            Sent by:{" "}
+                                            {members.find((u) => u.id === message.sender)?.name ?? "Unknown User"}
+                                        </p>
+                                    )}
+                                    {message.updatedAt && message.updatedAt !== message.createdAt && (
+                                        <p>Updated At: {new Date(message.updatedAt).toLocaleString()}</p>
+                                    )}
+                                    <p>Created At: {new Date(message.createdAt).toLocaleString()}</p>
+                                </HoverCardContent>
+                            </HoverCard>
+                        </div>
+                    )
+                })}
+            </ScrollArea>
+            <form className="mt-auto bg-muted p-4">
+                <div className="mx-auto flex w-full items-center gap-2">
+                    <Input placeholder="Type a message..." />
+                    <Button type="submit" className="shrink-0">
+                        <Send className="h-4 w-4" />
+                        <span className="sr-only">Send</span>
+                    </Button>
+                </div>
+            </form>
         </div>
     )
 }
 
 function User() {
     const [currentConversation, setCurrentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
-    const [conversations, setConversations] = useContext(ConversationsContext) ?? [[], () => {}]
+    const [isChat, setIsChat] = useContext(ChatContext) ?? [[], () => {}]
     const [members, setMembers] = useContext(MembersContext) ?? [[], () => {}]
     const [error, setError] = useState<string | null>(null)
 
     async function handleConversationSelect(id: string) {
         const res = await ftc.conversations.getOne(id, "user")
         if (typeof res === "string") return setError(res)
-
         setCurrentConversation(res)
+        setIsChat(true)
     }
 
     if (error) return <Error error={error} />
 
     return (
         <div className="flex flex-col">
-            <div className="bg-muted rounded-tl-md rounded-tr-md p-4">
+            <div className="bg-muted rounded-b-md p-4">
                 <div className="flex flex-row justify-between  mb-1">
                     <h1 className="font-comfortaa text-2xl mb-2.5 tracking-tight text-foreground">Chatio</h1>
                     <Dropdown />
@@ -294,7 +334,7 @@ function User() {
             <ScrollArea>
                 {members.map((user, index) => {
                     return (
-                        <div key={index} className="grid">
+                        <div key={index}>
                             <Card
                                 role="button"
                                 className="flex flex-row items-center gap-2 p-2 m-2 hover:bg-card/50 cursor-pointer"
@@ -409,18 +449,17 @@ function Dropdown() {
 }
 
 function Settings() {
+    const [activeTab, setActiveTab] = useState<"profile" | "account">("profile")
+    const [gender, setGender] = useState<"male" | "female" | "other">("other")
     const [open, setOpen] = useContext(DialogContext) ?? [false, () => {}]
     const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
-    const { theme, setTheme } = useTheme()
-    const router = useRouter()
-    const [activeTab, setActiveTab] = useState<"profile" | "appearance" | "shortcuts" | "account">("profile")
-    const [name, setName] = useState("")
-    const [email, setEmail] = useState("")
-    const [username, setUsername] = useState("")
-    const [gender, setGender] = useState<"male" | "female" | "other">("other")
-    const [avatar, setAvatar] = useState("")
     const [message, setMessage] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [username, setUsername] = useState("")
+    const [avatar, setAvatar] = useState("")
+    const [email, setEmail] = useState("")
+    const [name, setName] = useState("")
+    const router = useRouter()
 
     useEffect(() => {
         if (!user) return
@@ -512,7 +551,7 @@ function Settings() {
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="overflow-hidden p-0 md:max-h-125 md:max-w-175 lg:max-w-200">
+            <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-0 max-h-[85dvh] md:max-h-125 md:max-w-175 lg:max-w-200">
                 <DialogTitle className="sr-only">Settings</DialogTitle>
                 <DialogDescription className="sr-only">Customize your settings here.</DialogDescription>
                 <SidebarProvider className="items-start">
@@ -537,7 +576,7 @@ function Settings() {
                             </SidebarGroup>
                         </SidebarContent>
                     </Sidebar>
-                    <main className="flex h-120 flex-1 flex-col overflow-hidden">
+                    <main className="flex h-[70dvh] flex-1 flex-col overflow-hidden md:h-120">
                         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
                             <div className="flex items-center gap-2">
                                 <Breadcrumb>
@@ -556,6 +595,21 @@ function Settings() {
                                 </Breadcrumb>
                             </div>
                         </header>
+                        <div className="flex gap-2 border-b p-3 md:hidden">
+                            {sections.map((item) => (
+                                <Button
+                                    key={item.id}
+                                    type="button"
+                                    size="sm"
+                                    variant={activeTab === item.id ? "default" : "outline"}
+                                    className="flex-1"
+                                    onClick={() => setActiveTab(item.id)}
+                                >
+                                    <item.icon className="mr-1.5" />
+                                    {item.title}
+                                </Button>
+                            ))}
+                        </div>
                         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
                             {!!error && (
                                 <Alert variant="destructive">
@@ -618,7 +672,7 @@ function Settings() {
                                         </div>
                                         <div className="space-y-1.5">
                                             <p className="text-sm text-muted-foreground">Gender</p>
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-wrap gap-2">
                                                 <Button
                                                     type="button"
                                                     size="sm"
