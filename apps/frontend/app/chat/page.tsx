@@ -1,17 +1,16 @@
 "use client"
 
 import {
-    Component,
     ComponentType,
     createContext,
     Dispatch,
-    FormEvent,
+    InputEvent,
     SetStateAction,
-    SubmitEventHandler,
     SVGProps,
     SyntheticEvent,
     useContext,
     useEffect,
+    useRef,
     useState
 } from "react"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
@@ -21,17 +20,18 @@ import { AuthenticatedUser, Conversation, Message, PublicUser } from "schema"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
     AlertCircleIcon,
+    Eye,
+    EyeOff,
     HelpCircle,
     Home,
-    Keyboard,
     LoaderCircle,
     LogOut,
     Menu,
     MessageCircle,
-    MonitorIcon,
+    Monitor,
     MoonIcon,
     Paintbrush,
-    PaletteIcon,
+    Palette,
     Search,
     Send,
     SettingsIcon,
@@ -67,7 +67,6 @@ import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { Github } from "@/components/icon/github"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-
 import {
     Sidebar,
     SidebarContent,
@@ -78,7 +77,6 @@ import {
     SidebarMenuItem,
     SidebarProvider
 } from "@/components/ui/sidebar"
-
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -89,6 +87,10 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { Link } from "@/components/ui/link"
 
 export const ChatContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 export const DialogContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
@@ -135,7 +137,14 @@ export default () => {
     useEffect(() => {
         const data = JSON.parse(globalThis.sessionStorage.getItem("user") ?? "{}")
         if (Value.Check(AuthenticatedUser, data)) return setUser(data)
-        ftc.auth.me().then((x) => (typeof x === "string" ? setError(x) : setUser(x)))
+        ftc.auth.me().then((res) => {
+            if (typeof res === "string") {
+                if (res === "Authentication failed") return (globalThis.location.href = "/")
+                setError(res)
+            } else {
+                setUser(res)
+            }
+        })
     }, [])
 
     useEffect(() => {
@@ -194,7 +203,6 @@ export default () => {
                             <CurrentConversationContext.Provider value={[currentConversation, setCurrentConversation]}>
                                 <MessageContext.Provider value={[messages, setMessages]}>
                                     <>
-                                        {/* Utility Components */}
                                         <Settings />
                                         <Toaster />
                                     </>
@@ -282,7 +290,7 @@ function Chat() {
                                 <HoverCardContent className="flex w-64 flex-col gap-0.5 text-xs">
                                     {!isCurrentUser && (
                                         <p>
-                                            Sent by:{" "}
+                                            Sent by:
                                             {members.find((u) => u.id === message.sender)?.name ?? "Unknown User"}
                                         </p>
                                     )}
@@ -404,7 +412,7 @@ function Dropdown() {
                     </DropdownMenuItem>
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger>
-                            <PaletteIcon />
+                            <Palette />
                             Theme
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
@@ -421,7 +429,7 @@ function Dropdown() {
                                             Dark
                                         </DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="system">
-                                            <MonitorIcon />
+                                            <Monitor />
                                             System
                                         </DropdownMenuRadioItem>
                                     </DropdownMenuRadioGroup>
@@ -459,24 +467,14 @@ function Dropdown() {
 
 function Settings() {
     const [activeTab, setActiveTab] = useState<"profile" | "account">("profile")
-    const [gender, setGender] = useState<"male" | "female" | "other">("other")
     const [open, setOpen] = useContext(DialogContext) ?? [false, () => {}]
     const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
-
-    const [username, setUsername] = useState("")
-    const [avatar, setAvatar] = useState("")
-    const [email, setEmail] = useState("")
-    const [name, setName] = useState("")
+    const conformPasswordElement = useRef<HTMLDivElement>(null)
+    const passwordElement = useRef<HTMLDivElement>(null)
+    const passwordRef = useRef<HTMLInputElement>(null)
+    const [gender, setGender] = useState<string>("")
+    const [show, setShow] = useState(false)
     const router = useRouter()
-
-    useEffect(() => {
-        if (!user) return
-        setName(user.name)
-        setEmail(user.email)
-        setUsername(user.username)
-        setGender(user.gender)
-        setAvatar(user.avatar ?? "")
-    }, [user, open])
 
     const sections: Array<{ id: "profile" | "account"; title: string; icon: ComponentType<SVGProps<SVGSVGElement>> }> =
         [
@@ -484,7 +482,7 @@ function Settings() {
             { id: "account", title: "Account", icon: Home }
         ]
 
-    function handleLocalProfileSave(x: SyntheticEvent<HTMLFormElement>) {
+    function profileUpdate(x: SyntheticEvent<HTMLFormElement>) {
         x.preventDefault()
         if (!user) {
             tx("error", "Unable to update profile: user is not loaded.")
@@ -558,8 +556,34 @@ function Settings() {
         }, 1000)
     }
 
-    async function setPassword(newPassword: string) {
+    async function emailUpdate(form: FormData) {
         // Implementation for setting password
+    }
+
+    async function passwordUpdate(form: FormData) {
+        // Implementation for setting password
+    }
+
+    function usernameCheck(event: InputEvent<HTMLInputElement>) {
+        if (!/^[a-zA-Z][a-zA-Z0-9-]{2,11}$/.test(event.currentTarget.value)) {
+            event.currentTarget.setCustomValidity(
+                "Username must be 4-12 characters, start with a letter, and contain only letters, numbers, and hyphens (-)"
+            )
+        } else {
+            event.currentTarget.setCustomValidity("")
+        }
+    }
+
+    function registrationPasswordCheck(event: InputEvent<HTMLInputElement>) {
+        if (event.currentTarget.value !== passwordRef.current?.value) {
+            event.currentTarget.setCustomValidity("Passwords do not match")
+            passwordElement.current?.setAttribute("data-invalid", "true")
+            conformPasswordElement.current?.setAttribute("data-invalid", "true")
+        } else {
+            event.currentTarget.setCustomValidity("")
+            passwordElement.current?.setAttribute("data-invalid", "false")
+            conformPasswordElement.current?.setAttribute("data-invalid", "false")
+        }
     }
 
     return (
@@ -624,255 +648,405 @@ function Settings() {
                             ))}
                         </div>
                         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-                            {activeTab === "profile" && (
-                                <>
-                                    <h2 className="mb-4 text-lg font-semibold">Edit profile</h2>
-                                    <form className="flex flex-col gap-4" onSubmit={handleLocalProfileSave}>
-                                        <div className="flex flex-col gap-2">
-                                            <p className="text-sm text-muted-foreground">Avatar preview</p>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-12 w-12">
-                                                    {avatar.trim() && (
-                                                        <AvatarImage src={avatar.trim()} alt={username || name} />
-                                                    )}
-                                                    <AvatarFallback>
-                                                        {name.includes(" ")
-                                                            ? name
-                                                                  .split(" ")
-                                                                  .map((w) => w[0])
-                                                                  .join("")
-                                                                  .slice(0, 2)
-                                                                  .toUpperCase()
-                                                            : name?.slice(0, 2).toUpperCase()}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Set an image URL below to update your avatar.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label htmlFor="name" className="text-sm text-muted-foreground">
-                                                Display name
-                                            </label>
-                                            <Input
-                                                value={name}
-                                                name="name"
-                                                id="name"
-                                                onChange={(event) => setName(event.target.value)}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label htmlFor="username" className="text-sm text-muted-foreground">
-                                                Username
-                                            </label>
-                                            <Input
-                                                value={username}
-                                                onChange={(event) => setUsername(event.target.value)}
-                                                placeholder="username"
-                                                name="username"
-                                                id="username"
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label htmlFor="gender" className="text-sm text-muted-foreground">
-                                                Gender
-                                            </label>
-                                            <div className="flex flex-wrap gap-2">
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant={gender === "male" ? "default" : "outline"}
-                                                    onClick={() => setGender("male")}
-                                                >
-                                                    Male
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant={gender === "female" ? "default" : "outline"}
-                                                    onClick={() => setGender("female")}
-                                                >
-                                                    Female
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant={gender === "other" ? "default" : "outline"}
-                                                    onClick={() => setGender("other")}
-                                                >
-                                                    Other
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label htmlFor="avatar" className="text-sm text-muted-foreground">
-                                                Avatar URL
-                                            </label>
-                                            <Input
-                                                id="avatar"
-                                                name="avatar"
-                                                value={avatar}
-                                                onChange={(event) => setAvatar(event.target.value)}
-                                                placeholder="https://example.com/avatar.png"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Button>Save profile</Button>
-                                        </div>
-                                    </form>
-                                </>
-                            )}
-
-                            {activeTab === "account" && (
-                                <>
-                                    <h2 className="mb-4 text-lg font-semibold">Account</h2>
-
-                                    <div className="flex flex-row items-end gap-2">
-                                        <div className="flex w-full flex-col gap-2">
-                                            <label htmlFor="email" className="text-sm text-muted-foreground">
-                                                Email
-                                            </label>
-                                            <Input id="email" value={email} className="w-full" disabled />
-                                        </div>
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <Button variant="outline" className="w-15">
-                                                    Edit
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogTitle>Change email</DialogTitle>
-                                                <DialogDescription>
-                                                    Enter your new email address below.
-                                                </DialogDescription>
-                                                <form
-                                                    className="flex flex-col gap-4"
-                                                    onSubmit={(e) => {
-                                                        e.preventDefault()
-                                                    }}
-                                                >
-                                                    <div className="flex w-full flex-col gap-2">
-                                                        <label
-                                                            htmlFor="newEmail"
-                                                            className="text-sm text-muted-foreground"
-                                                        >
-                                                            New Email
-                                                        </label>
-                                                        <Input
-                                                            id="newEmail"
-                                                            className="w-full"
-                                                            type="email"
-                                                            placeholder="you@example.com"
-                                                        />
-                                                    </div>
-                                                    <div className="flex w-full flex-col gap-2">
-                                                        <label
-                                                            htmlFor="newEmail"
-                                                            className="text-sm text-muted-foreground"
-                                                        >
-                                                            Enter your password
-                                                        </label>
-                                                        <Input
-                                                            id="newEmail"
-                                                            className="w-full"
-                                                            type="password"
-                                                            placeholder="********"
-                                                        />
-                                                    </div>
-                                                    <Button type="submit" className="mt-4">
-                                                        Update Email
-                                                    </Button>
-                                                </form>
-                                            </DialogContent>
-                                        </Dialog>
-                                    </div>
-                                    <div className="flex flex-row items-end gap-2">
-                                        <div className="flex w-full flex-col gap-2">
-                                            <label htmlFor="password" className="text-sm text-muted-foreground">
-                                                Password
-                                            </label>
-                                            <Input id="password" value="********" className="w-full" disabled />
-                                        </div>
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <Button variant="outline" className="w-15">
-                                                    Edit
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogTitle>Change Password</DialogTitle>
-                                                <DialogDescription>Enter your new password below.</DialogDescription>
-                                                <form
-                                                    className="flex flex-col gap-4"
-                                                    onSubmit={(e) => {
-                                                        e.preventDefault()
-                                                    }}
-                                                >
-                                                    <div className="flex w-full flex-col gap-2">
-                                                        <label
-                                                            htmlFor="oldPassword"
-                                                            className="text-sm text-muted-foreground"
-                                                        >
-                                                            Old Password
-                                                        </label>
-                                                        <Input
-                                                            id="oldPassword"
-                                                            className="w-full"
-                                                            type="password"
-                                                            placeholder="********"
-                                                        />
-                                                    </div>
-                                                    <div className="flex w-full flex-col gap-2">
-                                                        <label
-                                                            htmlFor="newPassword"
-                                                            className="text-sm text-muted-foreground"
-                                                        >
-                                                            New Password
-                                                        </label>
-                                                        <Input
-                                                            id="newPassword"
-                                                            className="w-full"
-                                                            type="password"
-                                                            placeholder="********"
-                                                        />
-                                                    </div>
-                                                    <div className="flex w-full flex-col gap-2">
-                                                        <label
-                                                            htmlFor="confirmPassword"
-                                                            className="text-sm text-muted-foreground"
-                                                        >
-                                                            Confirm New Password
-                                                        </label>
-                                                        <Input
-                                                            id="confirmPassword"
-                                                            className="w-full"
-                                                            type="password"
-                                                            placeholder="********"
-                                                        />
-                                                    </div>
-                                                    <Button type="submit" className="mt-4">
-                                                        Update Password
-                                                    </Button>
-                                                </form>
-                                            </DialogContent>
-                                        </Dialog>
-                                    </div>
-                                    <div className="flex flex-col gap-2 mt-6">
-                                        <Button variant="outline" onClick={() => router.push("/support")}>
-                                            Contact support
-                                        </Button>
-                                        <Button variant="destructive" onClick={handleLogout}>
-                                            Log out
-                                        </Button>
-                                    </div>
-                                </>
-                            )}
+                            {activeTab === "profile" && <SettingsProfile />}
+                            {activeTab === "account" && <SettingsAccount />}
                         </div>
                     </main>
                 </SidebarProvider>
             </DialogContent>
         </Dialog>
+    )
+}
+
+function SettingsProfile() {
+    const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
+    const [gender, setGender] = useState<string>("")
+
+    function profileUpdate(x: SyntheticEvent<HTMLFormElement>) {
+        x.preventDefault()
+        if (!user) {
+            tx("error", "Unable to update profile: user is not loaded.")
+            return
+        }
+
+        // const trimmedName = name.trim()
+        // const trimmedEmail = email.trim()
+        // const trimmedUsername = username.trim()
+        // const trimmedAvatar = avatar.trim()
+
+        // if (!trimmedName) {
+        //     tx("error", "Name cannot be empty.")
+        //     return
+        // }
+
+        // if (!/^[a-zA-Z][a-zA-Z0-9-]{2,11}$/.test(trimmedUsername)) {
+        //     tx("error", "Username must match 3-12 chars and start with a letter.")
+        //     return
+        // }
+
+        // if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
+        //     tx("error", "Please provide a valid email address.")
+        //     return
+        // }
+
+        // if (!["male", "female", "other"].includes(gender)) {
+        //     tx("error", "Please select a valid gender.")
+        //     return
+        // }
+
+        // if (trimmedAvatar) {
+        //     try {
+        //         const parsed = new URL(trimmedAvatar)
+        //         if (!/^https?:$/.test(parsed.protocol)) {
+        //             tx("error", "Avatar URL must start with http:// or https://")
+        //             return
+        //         }
+        //     } catch {
+        //         tx("error", "Avatar URL is invalid.")
+        //         return
+        //     }
+        // }
+
+        // const nextUser = {
+        //     ...user,
+        //     name: trimmedName,
+        //     email: trimmedEmail,
+        //     username: trimmedUsername,
+        //     gender,
+        //     avatar: trimmedAvatar || null,
+        //     updatedAt: new Date().toISOString()
+        // }
+
+        // setUser(nextUser)
+        // globalThis.sessionStorage.setItem("user", JSON.stringify(nextUser))
+        tx("success", "Profile updated locally")
+    }
+
+    function usernameCheck(event: InputEvent<HTMLInputElement>) {
+        if (!/^[a-zA-Z][a-zA-Z0-9-]{2,11}$/.test(event.currentTarget.value)) {
+            event.currentTarget.setCustomValidity(
+                "Username must be 4-12 characters, start with a letter, and contain only letters, numbers, and hyphens (-)"
+            )
+        } else {
+            event.currentTarget.setCustomValidity("")
+        }
+    }
+
+    return (
+        <>
+            <h2 className="mb-4 text-lg font-semibold">Edit profile</h2>
+            <form className="flex flex-col " onSubmit={profileUpdate}>
+                <FieldGroup>
+                    <Field className="flex flex-col gap-2">
+                        <FieldLabel>Avatar preview</FieldLabel>
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-12 w-12">
+                                {user?.avatar?.trim() && (
+                                    <AvatarImage src={user.avatar.trim()} alt={user.username || user.name} />
+                                )}
+                                <AvatarFallback>
+                                    {user?.name.includes(" ")
+                                        ? user.name
+                                              .split(" ")
+                                              .map((w) => w[0])
+                                              .join("")
+                                              .slice(0, 2)
+                                              .toUpperCase()
+                                        : user?.name?.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                            </Avatar>
+                            <p className="text-xs text-muted-foreground">
+                                Set an image URL below to update your avatar.
+                            </p>
+                        </div>
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="name">Display name</FieldLabel>
+                        <Input id="name" name="name" placeholder="Enter your name" title="Enter your name" required />
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="username">Username</FieldLabel>
+                        <Input
+                            id="username"
+                            name="username"
+                            placeholder="Enter your username"
+                            required
+                            onInput={usernameCheck}
+                        />
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="gender">Gender</FieldLabel>
+                        <Select onValueChange={setGender} required>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select your gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem value="male">Male</SelectItem>
+                                    <SelectItem value="female">Female</SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                        <input type="hidden" name="gender" value={gender} />
+                    </Field>
+                    <Field orientation="horizontal">
+                        <Button type="submit">Save profile</Button>
+                    </Field>
+                </FieldGroup>
+            </form>
+        </>
+    )
+}
+
+function SettingsAccount() {
+    const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
+    const router = useRouter()
+
+    async function handleLogout() {
+        const res = await ftc.auth.logout()
+        if (typeof res === "string") {
+            tx("error", res)
+            return
+        }
+
+        globalThis.sessionStorage.removeItem("user")
+        tx("success", "Logged out successfully.")
+        setTimeout(() => {
+            router.push("/")
+        }, 1000)
+    }
+
+    return (
+        <>
+            <h2 className="mb-4 text-lg font-semibold">Account</h2>
+            <div className="flex flex-row items-end gap-2">
+                <div className="flex w-full flex-col gap-2">
+                    <label htmlFor="email" className="text-sm text-muted-foreground">
+                        Email
+                    </label>
+                    <Input id="email" value={user?.email} className="w-full" disabled />
+                </div>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="w-15">
+                            Edit
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <ChangeEmail />
+                    </DialogContent>
+                </Dialog>
+            </div>
+            <div className="flex flex-row items-end gap-2">
+                <div className="flex w-full flex-col gap-2">
+                    <label htmlFor="password" className="text-sm text-muted-foreground">
+                        Password
+                    </label>
+                    <Input value="********" className="w-full" disabled />
+                </div>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="w-15">
+                            Edit
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <ChangePassword />
+                    </DialogContent>
+                </Dialog>
+            </div>
+            <div className="flex flex-row gap-2 mt-6">
+                <Button variant="outline" onClick={() => router.push("/support")}>
+                    Contact support
+                </Button>
+                <Button variant="destructive" onClick={handleLogout}>
+                    Log out
+                </Button>
+            </div>
+        </>
+    )
+}
+
+function ChangeEmail() {
+    const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
+    const [showPassword, setShowPassword] = useState(false)
+    const passwordRef = useRef<HTMLInputElement>(null)
+
+    async function emailUpdate(form: FormData) {
+        const data = Object.fromEntries(form.entries())
+        console.log(data)
+    }
+
+    return (
+        <>
+            <DialogTitle>Change email</DialogTitle>
+            <DialogDescription>Enter your new email address below.</DialogDescription>
+            <form className="flex flex-col gap-4" action={emailUpdate}>
+                <FieldGroup>
+                    <Field>
+                        <FieldLabel htmlFor="newEmail">New Email</FieldLabel>
+                        <Input id="newEmail" name="newEmail" placeholder="Enter your new email" type="email" required />
+                    </Field>
+                    <Field>
+                        <div className="flex justify-between items-center">
+                            <FieldLabel htmlFor="password">Password</FieldLabel>
+                            <Link
+                                type="button"
+                                variant="link"
+                                className="text-muted-foreground text-xs p-0 h-auto"
+                                href="/forget"
+                            >
+                                Forgot password?
+                            </Link>
+                        </div>
+                        <InputGroup>
+                            <InputGroupInput
+                                id="password"
+                                name="password"
+                                ref={passwordRef}
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Enter your password"
+                                required
+                            />
+                            <InputGroupAddon align="inline-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                                    aria-label="Show Your Password"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </InputGroupAddon>
+                        </InputGroup>
+                    </Field>
+                    <Field orientation="horizontal">
+                        <Button type="submit">Update Email</Button>
+                    </Field>
+                </FieldGroup>
+            </form>
+        </>
+    )
+}
+function ChangePassword() {
+    const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
+    const conformPasswordField = useRef<HTMLDivElement>(null)
+    const passwordField = useRef<HTMLDivElement>(null)
+    const passwordRef = useRef<HTMLInputElement>(null)
+    const [showPassword, setShowPassword] = useState(false)
+
+    async function passwordUpdate(form: FormData) {
+        const data = Object.fromEntries(form.entries())
+        console.log(data)
+    }
+
+    function passwordCheck(event: InputEvent<HTMLInputElement>) {
+        if (event.currentTarget.value !== passwordRef.current?.value) {
+            event.currentTarget.setCustomValidity("Passwords do not match")
+            passwordField.current?.setAttribute("data-invalid", "true")
+            conformPasswordField.current?.setAttribute("data-invalid", "true")
+        } else {
+            event.currentTarget.setCustomValidity("")
+            passwordField.current?.setAttribute("data-invalid", "false")
+            conformPasswordField.current?.setAttribute("data-invalid", "false")
+        }
+    }
+
+    return (
+        <>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>Enter your new password below.</DialogDescription>
+            <form className="flex flex-col gap-4" action={passwordUpdate}>
+                <FieldGroup>
+                    <Field>
+                        <div className="flex justify-between items-center">
+                            <FieldLabel htmlFor="password">Current Password</FieldLabel>
+                            <Link
+                                type="button"
+                                variant="link"
+                                className="text-muted-foreground text-xs p-0 h-auto"
+                                href="/forget"
+                            >
+                                Forgot password?
+                            </Link>
+                        </div>
+                        <InputGroup>
+                            <InputGroupInput
+                                id="oldPassword"
+                                name="password"
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Enter your current password"
+                                required
+                            />
+                            <InputGroupAddon align="inline-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                                    aria-label="Show Your Password"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </InputGroupAddon>
+                        </InputGroup>
+                    </Field>
+                    <Field ref={passwordField}>
+                        <FieldLabel htmlFor="newPassword">New Password</FieldLabel>
+                        <InputGroup>
+                            <InputGroupInput
+                                id="newPassword"
+                                name="newPassword"
+                                ref={passwordRef}
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Enter your new password"
+                                minLength={6}
+                                maxLength={30}
+                                required
+                            />
+                            <InputGroupAddon align="inline-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                                    aria-label="Show Your Password"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </InputGroupAddon>
+                        </InputGroup>
+                    </Field>
+                    <Field ref={conformPasswordField}>
+                        <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
+                        <InputGroup>
+                            <InputGroupInput
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Confirm your password"
+                                minLength={6}
+                                maxLength={30}
+                                required
+                                onInput={passwordCheck}
+                            />
+                            <InputGroupAddon align="inline-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                                    aria-label="Show Your Password"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </InputGroupAddon>
+                        </InputGroup>
+                    </Field>
+                    <Field orientation="horizontal">
+                        <Button type="submit">Update Password</Button>
+                    </Field>
+                </FieldGroup>
+            </form>
+        </>
     )
 }
 
@@ -882,7 +1056,7 @@ function tx(type: "success" | "error" | "warning" | "info", text: string, descri
 
 function Error({ error }: { error: string }) {
     return (
-        <div className="flex h-full w-full items-center justify-center">
+        <div className="flex h-screen w-full items-center justify-center">
             <Alert className="max-w-md rounded-xl" variant="destructive">
                 <AlertCircleIcon />
                 <AlertTitle>An error occurred</AlertTitle>
@@ -893,7 +1067,7 @@ function Error({ error }: { error: string }) {
 }
 function Loading({ message = "Loading..." }: { message?: string }) {
     return (
-        <div className="flex min-h-dvh w-full items-center justify-center">
+        <div className="flex h-screen w-full items-center justify-center">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <LoaderCircle className="h-4 w-4 animate-spin" />
                 <span>{message}</span>
