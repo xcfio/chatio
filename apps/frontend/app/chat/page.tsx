@@ -5,8 +5,11 @@ import {
     ComponentType,
     createContext,
     Dispatch,
+    FormEvent,
     SetStateAction,
+    SubmitEventHandler,
     SVGProps,
+    SyntheticEvent,
     useContext,
     useEffect,
     useState
@@ -63,7 +66,7 @@ import {
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { Github } from "@/components/icon/github"
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 import {
     Sidebar,
@@ -84,6 +87,8 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb"
+import { Toaster } from "@/components/ui/sonner"
+import { toast } from "sonner"
 
 export const ChatContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 export const DialogContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
@@ -188,6 +193,11 @@ export default () => {
                         <ConversationsContext.Provider value={[conversations, setConversations]}>
                             <CurrentConversationContext.Provider value={[currentConversation, setCurrentConversation]}>
                                 <MessageContext.Provider value={[messages, setMessages]}>
+                                    <>
+                                        {/* Utility Components */}
+                                        <Settings />
+                                        <Toaster />
+                                    </>
                                     {width >= 768 ? (
                                         <Page footer={false} className="hidden md:block h-screen w-screen">
                                             <ResizablePanelGroup orientation="horizontal" className="border">
@@ -320,7 +330,6 @@ function User() {
                 <div className="flex flex-row justify-between  mb-1">
                     <h1 className="font-comfortaa text-2xl mb-2.5 tracking-tight text-foreground">Chatio</h1>
                     <Dropdown />
-                    <Settings />
                 </div>
                 {/* <Separator className="my-2" /> */}
                 <div className="relative">
@@ -453,8 +462,7 @@ function Settings() {
     const [gender, setGender] = useState<"male" | "female" | "other">("other")
     const [open, setOpen] = useContext(DialogContext) ?? [false, () => {}]
     const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
-    const [message, setMessage] = useState<string | null>(null)
-    const [error, setError] = useState<string | null>(null)
+
     const [username, setUsername] = useState("")
     const [avatar, setAvatar] = useState("")
     const [email, setEmail] = useState("")
@@ -476,77 +484,82 @@ function Settings() {
             { id: "account", title: "Account", icon: Home }
         ]
 
-    function handleLocalProfileSave() {
-        setError(null)
-        setMessage(null)
-
+    function handleLocalProfileSave(x: SyntheticEvent<HTMLFormElement>) {
+        x.preventDefault()
         if (!user) {
-            setError("Unable to update profile: user is not loaded.")
+            tx("error", "Unable to update profile: user is not loaded.")
             return
         }
 
-        const trimmedName = name.trim()
-        const trimmedEmail = email.trim()
-        const trimmedUsername = username.trim()
-        const trimmedAvatar = avatar.trim()
+        // const trimmedName = name.trim()
+        // const trimmedEmail = email.trim()
+        // const trimmedUsername = username.trim()
+        // const trimmedAvatar = avatar.trim()
 
-        if (!trimmedName) {
-            setError("Name cannot be empty.")
-            return
-        }
+        // if (!trimmedName) {
+        //     tx("error", "Name cannot be empty.")
+        //     return
+        // }
 
-        if (!/^[a-zA-Z][a-zA-Z0-9-]{2,11}$/.test(trimmedUsername)) {
-            setError("Username must match 3-12 chars and start with a letter.")
-            return
-        }
+        // if (!/^[a-zA-Z][a-zA-Z0-9-]{2,11}$/.test(trimmedUsername)) {
+        //     tx("error", "Username must match 3-12 chars and start with a letter.")
+        //     return
+        // }
 
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
-            setError("Please provide a valid email address.")
-            return
-        }
+        // if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
+        //     tx("error", "Please provide a valid email address.")
+        //     return
+        // }
 
-        if (!["male", "female", "other"].includes(gender)) {
-            setError("Please select a valid gender.")
-            return
-        }
+        // if (!["male", "female", "other"].includes(gender)) {
+        //     tx("error", "Please select a valid gender.")
+        //     return
+        // }
 
-        if (trimmedAvatar) {
-            try {
-                const parsed = new URL(trimmedAvatar)
-                if (!/^https?:$/.test(parsed.protocol)) {
-                    setError("Avatar URL must start with http:// or https://")
-                    return
-                }
-            } catch {
-                setError("Avatar URL is invalid.")
-                return
-            }
-        }
+        // if (trimmedAvatar) {
+        //     try {
+        //         const parsed = new URL(trimmedAvatar)
+        //         if (!/^https?:$/.test(parsed.protocol)) {
+        //             tx("error", "Avatar URL must start with http:// or https://")
+        //             return
+        //         }
+        //     } catch {
+        //         tx("error", "Avatar URL is invalid.")
+        //         return
+        //     }
+        // }
 
-        const nextUser = {
-            ...user,
-            name: trimmedName,
-            email: trimmedEmail,
-            username: trimmedUsername,
-            gender,
-            avatar: trimmedAvatar || null,
-            updatedAt: new Date().toISOString()
-        }
+        // const nextUser = {
+        //     ...user,
+        //     name: trimmedName,
+        //     email: trimmedEmail,
+        //     username: trimmedUsername,
+        //     gender,
+        //     avatar: trimmedAvatar || null,
+        //     updatedAt: new Date().toISOString()
+        // }
 
-        setUser(nextUser)
-        globalThis.sessionStorage.setItem("user", JSON.stringify(nextUser))
-        setMessage("Profile updated locally. Server profile update endpoint is not available yet.")
+        // setUser(nextUser)
+        // globalThis.sessionStorage.setItem("user", JSON.stringify(nextUser))
+        tx("success", "Profile updated locally")
     }
 
     async function handleLogout() {
         const res = await ftc.auth.logout()
         if (typeof res === "string") {
-            setError(res)
+            tx("error", res)
             return
         }
 
         globalThis.sessionStorage.removeItem("user")
-        router.push("/")
+        tx("success", "Logged out successfully.")
+        setTimeout(() => {
+            router.push("/")
+        }, 1000)
+    }
+
+    async function setPassword(newPassword: string) {
+        // Implementation for setting password
     }
 
     return (
@@ -611,38 +624,26 @@ function Settings() {
                             ))}
                         </div>
                         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-                            {!!error && (
-                                <Alert variant="destructive">
-                                    <AlertCircleIcon />
-                                    <AlertTitle>Settings error</AlertTitle>
-                                    <AlertDescription>{error}</AlertDescription>
-                                </Alert>
-                            )}
-                            {!!message && (
-                                <Alert>
-                                    <AlertTitle>Saved</AlertTitle>
-                                    <AlertDescription>{message}</AlertDescription>
-                                </Alert>
-                            )}
-
                             {activeTab === "profile" && (
                                 <>
                                     <h2 className="mb-4 text-lg font-semibold">Edit profile</h2>
-                                    <div className="space-y-3">
-                                        <div className="space-y-1.5">
+                                    <form className="flex flex-col gap-4" onSubmit={handleLocalProfileSave}>
+                                        <div className="flex flex-col gap-2">
                                             <p className="text-sm text-muted-foreground">Avatar preview</p>
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-12 w-12">
-                                                    {!!avatar.trim() && (
+                                                    {avatar.trim() && (
                                                         <AvatarImage src={avatar.trim()} alt={username || name} />
                                                     )}
                                                     <AvatarFallback>
-                                                        {(name || "U")
-                                                            .split(" ")
-                                                            .map((x) => x[0] ?? "")
-                                                            .join("")
-                                                            .slice(0, 2)
-                                                            .toUpperCase()}
+                                                        {name.includes(" ")
+                                                            ? name
+                                                                  .split(" ")
+                                                                  .map((w) => w[0])
+                                                                  .join("")
+                                                                  .slice(0, 2)
+                                                                  .toUpperCase()
+                                                            : name?.slice(0, 2).toUpperCase()}
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <p className="text-xs text-muted-foreground">
@@ -650,28 +651,33 @@ function Settings() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <p className="text-sm text-muted-foreground">Display name</p>
-                                            <Input value={name} onChange={(event) => setName(event.target.value)} />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <p className="text-sm text-muted-foreground">Email</p>
+                                        <div className="flex flex-col gap-2">
+                                            <label htmlFor="name" className="text-sm text-muted-foreground">
+                                                Display name
+                                            </label>
                                             <Input
-                                                value={email}
-                                                onChange={(event) => setEmail(event.target.value)}
-                                                placeholder="you@example.com"
+                                                value={name}
+                                                name="name"
+                                                id="name"
+                                                onChange={(event) => setName(event.target.value)}
                                             />
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <p className="text-sm text-muted-foreground">Username</p>
+                                        <div className="flex flex-col gap-2">
+                                            <label htmlFor="username" className="text-sm text-muted-foreground">
+                                                Username
+                                            </label>
                                             <Input
                                                 value={username}
                                                 onChange={(event) => setUsername(event.target.value)}
                                                 placeholder="username"
+                                                name="username"
+                                                id="username"
                                             />
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <p className="text-sm text-muted-foreground">Gender</p>
+                                        <div className="flex flex-col gap-2">
+                                            <label htmlFor="gender" className="text-sm text-muted-foreground">
+                                                Gender
+                                            </label>
                                             <div className="flex flex-wrap gap-2">
                                                 <Button
                                                     type="button"
@@ -699,25 +705,160 @@ function Settings() {
                                                 </Button>
                                             </div>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <p className="text-sm text-muted-foreground">Avatar URL</p>
+                                        <div className="flex flex-col gap-2">
+                                            <label htmlFor="avatar" className="text-sm text-muted-foreground">
+                                                Avatar URL
+                                            </label>
                                             <Input
+                                                id="avatar"
+                                                name="avatar"
                                                 value={avatar}
                                                 onChange={(event) => setAvatar(event.target.value)}
                                                 placeholder="https://example.com/avatar.png"
                                             />
                                         </div>
-                                        <div className="pt-2">
-                                            <Button onClick={handleLocalProfileSave}>Save profile</Button>
+                                        <div>
+                                            <Button>Save profile</Button>
                                         </div>
-                                    </div>
+                                    </form>
                                 </>
                             )}
 
                             {activeTab === "account" && (
                                 <>
                                     <h2 className="mb-4 text-lg font-semibold">Account</h2>
-                                    <div className="flex flex-wrap gap-2">
+
+                                    <div className="flex flex-row items-end gap-2">
+                                        <div className="flex w-full flex-col gap-2">
+                                            <label htmlFor="email" className="text-sm text-muted-foreground">
+                                                Email
+                                            </label>
+                                            <Input id="email" value={email} className="w-full" disabled />
+                                        </div>
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" className="w-15">
+                                                    Edit
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogTitle>Change email</DialogTitle>
+                                                <DialogDescription>
+                                                    Enter your new email address below.
+                                                </DialogDescription>
+                                                <form
+                                                    className="flex flex-col gap-4"
+                                                    onSubmit={(e) => {
+                                                        e.preventDefault()
+                                                    }}
+                                                >
+                                                    <div className="flex w-full flex-col gap-2">
+                                                        <label
+                                                            htmlFor="newEmail"
+                                                            className="text-sm text-muted-foreground"
+                                                        >
+                                                            New Email
+                                                        </label>
+                                                        <Input
+                                                            id="newEmail"
+                                                            className="w-full"
+                                                            type="email"
+                                                            placeholder="you@example.com"
+                                                        />
+                                                    </div>
+                                                    <div className="flex w-full flex-col gap-2">
+                                                        <label
+                                                            htmlFor="newEmail"
+                                                            className="text-sm text-muted-foreground"
+                                                        >
+                                                            Enter your password
+                                                        </label>
+                                                        <Input
+                                                            id="newEmail"
+                                                            className="w-full"
+                                                            type="password"
+                                                            placeholder="********"
+                                                        />
+                                                    </div>
+                                                    <Button type="submit" className="mt-4">
+                                                        Update Email
+                                                    </Button>
+                                                </form>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
+                                    <div className="flex flex-row items-end gap-2">
+                                        <div className="flex w-full flex-col gap-2">
+                                            <label htmlFor="password" className="text-sm text-muted-foreground">
+                                                Password
+                                            </label>
+                                            <Input id="password" value="********" className="w-full" disabled />
+                                        </div>
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" className="w-15">
+                                                    Edit
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogTitle>Change Password</DialogTitle>
+                                                <DialogDescription>Enter your new password below.</DialogDescription>
+                                                <form
+                                                    className="flex flex-col gap-4"
+                                                    onSubmit={(e) => {
+                                                        e.preventDefault()
+                                                    }}
+                                                >
+                                                    <div className="flex w-full flex-col gap-2">
+                                                        <label
+                                                            htmlFor="oldPassword"
+                                                            className="text-sm text-muted-foreground"
+                                                        >
+                                                            Old Password
+                                                        </label>
+                                                        <Input
+                                                            id="oldPassword"
+                                                            className="w-full"
+                                                            type="password"
+                                                            placeholder="********"
+                                                        />
+                                                    </div>
+                                                    <div className="flex w-full flex-col gap-2">
+                                                        <label
+                                                            htmlFor="newPassword"
+                                                            className="text-sm text-muted-foreground"
+                                                        >
+                                                            New Password
+                                                        </label>
+                                                        <Input
+                                                            id="newPassword"
+                                                            className="w-full"
+                                                            type="password"
+                                                            placeholder="********"
+                                                        />
+                                                    </div>
+                                                    <div className="flex w-full flex-col gap-2">
+                                                        <label
+                                                            htmlFor="confirmPassword"
+                                                            className="text-sm text-muted-foreground"
+                                                        >
+                                                            Confirm New Password
+                                                        </label>
+                                                        <Input
+                                                            id="confirmPassword"
+                                                            className="w-full"
+                                                            type="password"
+                                                            placeholder="********"
+                                                        />
+                                                    </div>
+                                                    <Button type="submit" className="mt-4">
+                                                        Update Password
+                                                    </Button>
+                                                </form>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
+                                    <div className="flex flex-col gap-2 mt-6">
                                         <Button variant="outline" onClick={() => router.push("/support")}>
                                             Contact support
                                         </Button>
@@ -733,6 +874,10 @@ function Settings() {
             </DialogContent>
         </Dialog>
     )
+}
+
+function tx(type: "success" | "error" | "warning" | "info", text: string, description?: string) {
+    return toast[type](text, { description, position: "top-right" })
 }
 
 function Error({ error }: { error: string }) {
