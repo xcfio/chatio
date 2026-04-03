@@ -18,7 +18,7 @@
         "radix-ui": "^1.4.3",
         "react": "19.2.4",
         "react-dom": "19.2.4",
-        "react-resizable-panels": "^4.8.0",
+        "react-resizable-panels": "^4.9.0",
         "schema": "workspace:*",
         "shadcn": "^4.1.1",
         "socket.io-client": "^4.8.3",
