@@ -85,18 +85,17 @@ export const ftc = {
         },
         getAll: async (page?: number, limit?: number): Promise<Array<Static<typeof Conversation>> | string> => {
             try {
-                const params = new URLSearchParams()
+                const searchParams: Record<string, string> = {}
 
                 if (typeof page === "number" && Number.isFinite(page) && page >= 0) {
-                    params.set("page", String(page))
+                    searchParams["page"] = String(page)
                 }
 
                 if (typeof limit === "number" && Number.isFinite(limit) && limit > 0) {
-                    params.set("limit", String(limit))
+                    searchParams["limit"] = String(limit)
                 }
 
-                const queryString = params.toString() ? `?${params.toString()}` : ""
-                const data = await api.get(`conversations${queryString}`).json<Array<Static<typeof Conversation>>>()
+                const data = await api.get(`conversations`, { searchParams }).json<Array<Static<typeof Conversation>>>()
 
                 return isError(data) ? data.message : data
             } catch (error) {
@@ -111,10 +110,10 @@ export const ftc = {
             options?: { page?: number; limit?: number; before?: string; after?: string }
         ): Promise<Array<Static<typeof Message>> | string> => {
             try {
-                const params = new URLSearchParams()
+                const searchParams: Record<string, string> = {}
 
                 if (typeof options?.page === "number" && Number.isFinite(options.page) && options.page >= 1) {
-                    params.set("page", String(options.page))
+                    searchParams["page"] = String(options.page)
                 }
 
                 if (
@@ -123,20 +122,19 @@ export const ftc = {
                     options.limit >= 1 &&
                     options.limit <= 100
                 ) {
-                    params.set("limit", String(options.limit))
+                    searchParams["limit"] = String(options.limit)
                 }
 
                 if (typeof options?.before === "string" && options.before.trim()) {
-                    params.set("before", options.before)
+                    searchParams["before"] = options.before
                 }
 
                 if (typeof options?.after === "string" && options.after.trim()) {
-                    params.set("after", options.after)
+                    searchParams["after"] = options.after
                 }
 
-                const queryString = params.toString() ? `?${params.toString()}` : ""
                 const data = await api
-                    .get(`conversations/${conversationId}/messages${queryString}`)
+                    .get(`conversations/${conversationId}/messages`, { searchParams })
                     .json<Array<Static<typeof Message>>>()
 
                 return isError(data) ? data.message : data
@@ -204,10 +202,10 @@ export const ftc = {
             } = {}
         ): Promise<Array<Static<typeof PublicUser>> | string> => {
             try {
-                const params = new URLSearchParams()
+                const searchParams: Record<string, string> = {}
 
                 if (typeof options.page === "number" && Number.isFinite(options.page) && options.page >= 1) {
-                    params.set("page", String(options.page))
+                    searchParams["page"] = String(options.page)
                 }
 
                 if (
@@ -216,16 +214,15 @@ export const ftc = {
                     options.limit >= 1 &&
                     options.limit <= 100
                 ) {
-                    params.set("limit", String(options.limit))
+                    searchParams["limit"] = String(options.limit)
                 }
 
                 if (typeof options.search === "string" && options.search.trim()) {
-                    params.set("search", options.search)
+                    searchParams["search"] = options.search
                 }
 
-                const queryString = params.toString() ? `?${params.toString()}` : ""
                 const data = await api
-                    .post(`users${queryString}`, { json: options.id ?? null })
+                    .post(`users`, { searchParams, json: options.id ?? null })
                     .json<Array<Static<typeof PublicUser>>>()
                 return isError(data) ? data.message : data
             } catch (error) {
