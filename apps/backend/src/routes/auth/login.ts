@@ -15,7 +15,7 @@ export default function Login(fastify: Awaited<ReturnType<typeof main>>) {
             body: LoginUser,
             response: {
                 200: AuthenticatedUser,
-                403: ErrorResponse(403, "Forbidden - Incorrect username/email or password"),
+                403: ErrorResponse(403, "Forbidden - Incorrect username/email or password or user is banned"),
                 404: ErrorResponse(404, "Not Found - User Not found"),
                 429: ErrorResponse(429, "Too many requests - rate limit exceeded"),
                 500: ErrorResponse(500, "Internal server error")

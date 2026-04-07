@@ -1,16 +1,17 @@
-import { AuthenticatedUser, ErrorResponse } from "schema"
 import { CreateError, toTypeBox, xcf } from "../../function"
+import { AuthenticatedUser, ChangeUserInfo, ErrorResponse } from "schema"
 import { db, table } from "../../database"
-import { and, eq, isNull } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { main } from "../../"
 
-export default function Login(fastify: Awaited<ReturnType<typeof main>>) {
+export default function UpdateUser(fastify: Awaited<ReturnType<typeof main>>) {
     fastify.route({
-        method: "GET",
-        url: "/auth/me",
+        method: "PATCH",
+        url: "/auth/user",
         schema: {
             description: "Authenticate user and initiate a session",
             tags: ["Authentication"],
+            body: ChangeUserInfo,
             response: {
                 200: AuthenticatedUser,
                 403: ErrorResponse(403, "Forbidden - User is banned"),
@@ -23,18 +24,25 @@ export default function Login(fastify: Awaited<ReturnType<typeof main>>) {
         handler: async (request, reply) => {
             try {
                 const { id } = request.payload
-                const [user] = await db.select().from(table.users).where(eq(table.users.id, id))
+                const data = request.body
 
-                if (user.ban) {
+                const [oldUser] = await db.select().from(table.users).where(eq(table.users.id, id))
+
+                if (!oldUser) {
+                    throw CreateError(404, "USER_NOT_FOUND", "User not found")
+                }
+
+                if (oldUser.ban) {
                     throw CreateError(
                         403,
                         "USER_BANNED",
-                        `User is banned. Reason: ${user.ban} Contact support for more information.`
+                        `User is banned. Reason: ${oldUser.ban} Contact support for more information.`
                     )
                 }
 
-                if (!user) throw CreateError(404, "USER_NOT_FOUND", "User not found")
-                return reply.status(200).send(toTypeBox(user))
+                const [newUser] = await db.update(table.users).set(data).where(eq(table.users.id, id)).returning()
+
+                return reply.status(200).send(toTypeBox(newUser))
             } catch (error) {
                 await xcf(error)
             }

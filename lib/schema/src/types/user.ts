@@ -16,6 +16,15 @@ export const LoginUser = Type.Object({
     password: Type.String()
 })
 
+export const ChangeUserEmail = Type.Object({
+    email: Type.String(),
+    password: Type.String()
+})
+export const ChangeUserPassword = Type.Object({
+    oldPassword: Type.String(),
+    newPassword: Type.String()
+})
+
 export const PublicUser = Type.Object({
     id: UUID,
     name: UserSelect.properties.name,
@@ -28,3 +37,5 @@ export const AuthenticatedUser = Type.Interface(
     [Type.Omit(UserSelect, ["ban", "password", "createdAt", "updatedAt"])],
     { createdAt: Date, updatedAt: Date }
 )
+
+export const ChangeUserInfo = Type.Partial(Type.Pick(AuthenticatedUser, ["name", "username", "gender", "avatar"]))

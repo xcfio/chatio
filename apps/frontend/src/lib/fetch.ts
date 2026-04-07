@@ -1,6 +1,17 @@
 "use client"
 
-import { AuthenticatedUser, Conversation, ErrorResponse, LoginUser, Message, PublicUser, RegisterUser } from "schema"
+import {
+    AuthenticatedUser,
+    ChangeUserEmail,
+    ChangeUserInfo,
+    ChangeUserPassword,
+    Conversation,
+    ErrorResponse,
+    LoginUser,
+    Message,
+    PublicUser,
+    RegisterUser
+} from "schema"
 import { Value } from "typebox/value"
 import { Static } from "typebox"
 import ky from "ky"
@@ -45,6 +56,39 @@ export const ftc = {
         register: async (obj: Static<typeof RegisterUser>): Promise<Static<typeof AuthenticatedUser> | string> => {
             try {
                 const data = await api.post("auth/register", { json: obj }).json<Static<typeof AuthenticatedUser>>()
+                return isError(data) ? data.message : data
+            } catch (error) {
+                console.log(error)
+                return "An error occurred"
+            }
+        },
+        changeEmail: async (
+            obj: Static<typeof ChangeUserEmail>
+        ): Promise<Static<typeof AuthenticatedUser> | string> => {
+            try {
+                const data = await api.patch("auth/user/email", { json: obj }).json<Static<typeof AuthenticatedUser>>()
+                return isError(data) ? data.message : data
+            } catch (error) {
+                console.log(error)
+                return "An error occurred"
+            }
+        },
+        changePassword: async (
+            obj: Static<typeof ChangeUserPassword>
+        ): Promise<Static<typeof AuthenticatedUser> | string> => {
+            try {
+                const data = await api
+                    .patch("auth/user/password", { json: obj })
+                    .json<Static<typeof AuthenticatedUser>>()
+                return isError(data) ? data.message : data
+            } catch (error) {
+                console.log(error)
+                return "An error occurred"
+            }
+        },
+        updateUser: async (obj: Static<typeof ChangeUserInfo>): Promise<Static<typeof AuthenticatedUser> | string> => {
+            try {
+                const data = await api.patch("auth/user", { json: obj }).json<Static<typeof AuthenticatedUser>>()
                 return isError(data) ? data.message : data
             } catch (error) {
                 console.log(error)

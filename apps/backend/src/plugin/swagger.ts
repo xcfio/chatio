@@ -8,7 +8,7 @@ export default async function swagger(fastify: Awaited<ReturnType<typeof main>>)
         openapi: {
             openapi: "3.1.1",
             info: {
-                title: "Chatly",
+                title: "Chatio",
                 version: version
             }
         }
