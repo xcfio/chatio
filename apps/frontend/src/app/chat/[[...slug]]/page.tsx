@@ -8,6 +8,8 @@ import {
     SetStateAction,
     SVGProps,
     SyntheticEvent,
+    Usable,
+    use,
     useContext,
     useEffect,
     useRef,
@@ -16,7 +18,7 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { HoverCardTrigger, HoverCardContent, HoverCard } from "@/components/ui/hover-card"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { AuthenticatedUser, Conversation, Message, PublicUser } from "schema"
+import { AuthenticatedUser, ChangeUserInfo, Conversation, Message, PublicUser } from "schema"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
     AlertCircleIcon,
@@ -116,7 +118,18 @@ export const MessageContext = createContext<
     [Array<Static<typeof Message>>, Dispatch<SetStateAction<Array<Static<typeof Message>>>>] | null
 >(null)
 
-export default () => {
+export const avatarMimeTypes = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/avif",
+    "image/svg+xml",
+    "image/bmp",
+    "image/heic"
+])
+
+export default ({ params }: any) => {
     const [conversations, setConversations] = useState<Array<Static<typeof Conversation>> | null>(null)
     const [currentConversation, setCurrentConversation] = useState<Static<typeof Conversation> | null>(null)
     const [user, setUser] = useState<Static<typeof AuthenticatedUser> | null>(null)
@@ -127,6 +140,7 @@ export default () => {
     const [width, setWidth] = useState(globalThis.innerWidth)
     const [loading, setLoading] = useState<boolean>(true)
     const [isChat, setIsChat] = useState(false)
+    const { id: [id] = [] } = use(params) as { id?: [string] }
 
     useEffect(() => {
         const handler = () => setWidth(globalThis.innerWidth)
@@ -172,6 +186,16 @@ export default () => {
         setLoading(false)
         setMembers(res)
     }
+
+    useEffect(() => {
+        if (!id || !conversations) return
+
+        const conversation = conversations.find((x) => x.id === id)
+        if (conversation) {
+            setCurrentConversation(conversation)
+            setIsChat(true)
+        }
+    }, [id, conversations])
 
     useEffect(() => {
         if (!currentConversation) return
@@ -327,6 +351,7 @@ function User() {
         const res = await ftc.conversations.getOne(id, "user")
         if (typeof res === "string") return setError(res)
         setCurrentConversation(res)
+        window.history.replaceState(null, "", `/chat/${res.id}`)
         setIsChat(true)
     }
 
@@ -468,123 +493,12 @@ function Dropdown() {
 function Settings() {
     const [activeTab, setActiveTab] = useState<"profile" | "account">("profile")
     const [open, setOpen] = useContext(DialogContext) ?? [false, () => {}]
-    const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
-    const conformPasswordElement = useRef<HTMLDivElement>(null)
-    const passwordElement = useRef<HTMLDivElement>(null)
-    const passwordRef = useRef<HTMLInputElement>(null)
-    const [gender, setGender] = useState<string>("")
-    const [show, setShow] = useState(false)
-    const router = useRouter()
 
     const sections: Array<{ id: "profile" | "account"; title: string; icon: ComponentType<SVGProps<SVGSVGElement>> }> =
         [
             { id: "profile", title: "Profile", icon: UserCircle },
             { id: "account", title: "Account", icon: Home }
         ]
-
-    function profileUpdate(x: SyntheticEvent<HTMLFormElement>) {
-        x.preventDefault()
-        if (!user) {
-            tx("error", "Unable to update profile: user is not loaded.")
-            return
-        }
-
-        // const trimmedName = name.trim()
-        // const trimmedEmail = email.trim()
-        // const trimmedUsername = username.trim()
-        // const trimmedAvatar = avatar.trim()
-
-        // if (!trimmedName) {
-        //     tx("error", "Name cannot be empty.")
-        //     return
-        // }
-
-        // if (!/^[a-zA-Z][a-zA-Z0-9-]{2,11}$/.test(trimmedUsername)) {
-        //     tx("error", "Username must match 3-12 chars and start with a letter.")
-        //     return
-        // }
-
-        // if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
-        //     tx("error", "Please provide a valid email address.")
-        //     return
-        // }
-
-        // if (!["male", "female", "other"].includes(gender)) {
-        //     tx("error", "Please select a valid gender.")
-        //     return
-        // }
-
-        // if (trimmedAvatar) {
-        //     try {
-        //         const parsed = new URL(trimmedAvatar)
-        //         if (!/^https?:$/.test(parsed.protocol)) {
-        //             tx("error", "Avatar URL must start with http:// or https://")
-        //             return
-        //         }
-        //     } catch {
-        //         tx("error", "Avatar URL is invalid.")
-        //         return
-        //     }
-        // }
-
-        // const nextUser = {
-        //     ...user,
-        //     name: trimmedName,
-        //     email: trimmedEmail,
-        //     username: trimmedUsername,
-        //     gender,
-        //     avatar: trimmedAvatar || null,
-        //     updatedAt: new Date().toISOString()
-        // }
-
-        // setUser(nextUser)
-        // globalThis.sessionStorage.setItem("user", JSON.stringify(nextUser))
-        tx("success", "Profile updated locally")
-    }
-
-    async function handleLogout() {
-        const res = await ftc.auth.logout()
-        if (typeof res === "string") {
-            tx("error", res)
-            return
-        }
-
-        globalThis.sessionStorage.removeItem("user")
-        tx("success", "Logged out successfully.")
-        setTimeout(() => {
-            router.push("/")
-        }, 1000)
-    }
-
-    async function emailUpdate(form: FormData) {
-        // Implementation for setting password
-    }
-
-    async function passwordUpdate(form: FormData) {
-        // Implementation for setting password
-    }
-
-    function usernameCheck(event: InputEvent<HTMLInputElement>) {
-        if (!/^[a-zA-Z][a-zA-Z0-9-]{2,11}$/.test(event.currentTarget.value)) {
-            event.currentTarget.setCustomValidity(
-                "Username must be 4-12 characters, start with a letter, and contain only letters, numbers, and hyphens (-)"
-            )
-        } else {
-            event.currentTarget.setCustomValidity("")
-        }
-    }
-
-    function registrationPasswordCheck(event: InputEvent<HTMLInputElement>) {
-        if (event.currentTarget.value !== passwordRef.current?.value) {
-            event.currentTarget.setCustomValidity("Passwords do not match")
-            passwordElement.current?.setAttribute("data-invalid", "true")
-            conformPasswordElement.current?.setAttribute("data-invalid", "true")
-        } else {
-            event.currentTarget.setCustomValidity("")
-            passwordElement.current?.setAttribute("data-invalid", "false")
-            conformPasswordElement.current?.setAttribute("data-invalid", "false")
-        }
-    }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -624,8 +538,7 @@ function Settings() {
                                         <BreadcrumbSeparator className="hidden md:block" />
                                         <BreadcrumbItem>
                                             <BreadcrumbPage>
-                                                {sections.find((section) => section.id === activeTab)?.title ??
-                                                    "Profile"}
+                                                {sections.find((section) => section.id === activeTab)?.title}
                                             </BreadcrumbPage>
                                         </BreadcrumbItem>
                                     </BreadcrumbList>
@@ -660,66 +573,64 @@ function Settings() {
 
 function SettingsProfile() {
     const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
-    const [gender, setGender] = useState<string>("")
+    const [gender, setGender] = useState<string>(user?.gender ?? "")
+    const usernameRef = useRef<HTMLInputElement>(null)
+    const avatarRef = useRef<HTMLInputElement>(null)
 
-    function profileUpdate(x: SyntheticEvent<HTMLFormElement>) {
+    async function profileUpdate(x: SyntheticEvent<HTMLFormElement>) {
         x.preventDefault()
-        if (!user) {
-            tx("error", "Unable to update profile: user is not loaded.")
-            return
+
+        const form = new FormData(x.currentTarget)
+        const data = Object.fromEntries(form.entries()) as Static<typeof ChangeUserInfo>
+
+        if (!Value.Check(ChangeUserInfo, data)) {
+            const errors = [...Value.Errors(ChangeUserInfo, data)]
+            const message = errors.map((e: any) => `${e.path ?? "Form"}: ${e.message}`).join(", ")
+            return tx("error", "Validation failed", message)
         }
 
-        // const trimmedName = name.trim()
-        // const trimmedEmail = email.trim()
-        // const trimmedUsername = username.trim()
-        // const trimmedAvatar = avatar.trim()
+        if (data.avatar) {
+            try {
+                const contentType = (await fetch(data.avatar)).headers.get("Content-Type") ?? ""
 
-        // if (!trimmedName) {
-        //     tx("error", "Name cannot be empty.")
-        //     return
-        // }
+                if (!avatarMimeTypes.has(contentType)) {
+                    return tx("error", "Validation failed", "Avatar URL must point to a valid image")
+                }
+            } catch (error) {
+                console.log(error)
+                return tx("error", "Validation failed", "Failed to fetch avatar image")
+            }
+        }
 
-        // if (!/^[a-zA-Z][a-zA-Z0-9-]{2,11}$/.test(trimmedUsername)) {
-        //     tx("error", "Username must match 3-12 chars and start with a letter.")
-        //     return
-        // }
+        const output = await ftc.auth.updateUser(data)
+        if (typeof output === "string") {
+            return tx("error", "Profile update failed", output)
+        } else {
+            setUser(output)
+            window.sessionStorage.setItem("user", JSON.stringify(output))
+            return tx("success", "Profile updated", `Your profile has been updated, ${output.name}!`)
+        }
+    }
 
-        // if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
-        //     tx("error", "Please provide a valid email address.")
-        //     return
-        // }
+    function isValidUrl(str: string) {
+        try {
+            new URL(str)
+            return true
+        } catch {
+            return false
+        }
+    }
 
-        // if (!["male", "female", "other"].includes(gender)) {
-        //     tx("error", "Please select a valid gender.")
-        //     return
-        // }
-
-        // if (trimmedAvatar) {
-        //     try {
-        //         const parsed = new URL(trimmedAvatar)
-        //         if (!/^https?:$/.test(parsed.protocol)) {
-        //             tx("error", "Avatar URL must start with http:// or https://")
-        //             return
-        //         }
-        //     } catch {
-        //         tx("error", "Avatar URL is invalid.")
-        //         return
-        //     }
-        // }
-
-        // const nextUser = {
-        //     ...user,
-        //     name: trimmedName,
-        //     email: trimmedEmail,
-        //     username: trimmedUsername,
-        //     gender,
-        //     avatar: trimmedAvatar || null,
-        //     updatedAt: new Date().toISOString()
-        // }
-
-        // setUser(nextUser)
-        // globalThis.sessionStorage.setItem("user", JSON.stringify(nextUser))
-        tx("success", "Profile updated locally")
+    function avatarCheck(event: InputEvent<HTMLInputElement>) {
+        if (event.currentTarget.value && !isValidUrl(event.currentTarget.value)) {
+            event.currentTarget.setCustomValidity("Please enter a valid image URL")
+            event.currentTarget.setAttribute("aria-invalid", "true")
+            avatarRef.current?.setAttribute("data-invalid", "true")
+        } else {
+            event.currentTarget.setCustomValidity("")
+            event.currentTarget.setAttribute("aria-invalid", "false")
+            avatarRef.current?.setAttribute("data-invalid", "false")
+        }
     }
 
     function usernameCheck(event: InputEvent<HTMLInputElement>) {
@@ -727,8 +638,12 @@ function SettingsProfile() {
             event.currentTarget.setCustomValidity(
                 "Username must be 4-12 characters, start with a letter, and contain only letters, numbers, and hyphens (-)"
             )
+            event.currentTarget.setAttribute("aria-invalid", "true")
+            usernameRef.current?.setAttribute("data-invalid", "true")
         } else {
             event.currentTarget.setCustomValidity("")
+            event.currentTarget.setAttribute("aria-invalid", "false")
+            usernameRef.current?.setAttribute("data-invalid", "false")
         }
     }
 
@@ -760,11 +675,30 @@ function SettingsProfile() {
                             </p>
                         </div>
                     </Field>
-                    <Field>
-                        <FieldLabel htmlFor="name">Display name</FieldLabel>
-                        <Input id="name" name="name" placeholder="Enter your name" title="Enter your name" required />
+                    <Field ref={avatarRef}>
+                        <FieldLabel htmlFor="avatar">Avatar URL</FieldLabel>
+                        <Input
+                            id="avatar"
+                            name="avatar"
+                            placeholder="Enter your avatar URL"
+                            title="Enter your avatar URL"
+                            type="text"
+                            defaultValue={user?.avatar ?? ""}
+                            onInput={avatarCheck}
+                        />
                     </Field>
                     <Field>
+                        <FieldLabel htmlFor="name">Display name</FieldLabel>
+                        <Input
+                            id="name"
+                            name="name"
+                            placeholder="Enter your name"
+                            title="Enter your name"
+                            required
+                            defaultValue={user?.name}
+                        />
+                    </Field>
+                    <Field ref={usernameRef}>
                         <FieldLabel htmlFor="username">Username</FieldLabel>
                         <Input
                             id="username"
@@ -772,11 +706,12 @@ function SettingsProfile() {
                             placeholder="Enter your username"
                             required
                             onInput={usernameCheck}
+                            defaultValue={user?.username}
                         />
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="gender">Gender</FieldLabel>
-                        <Select onValueChange={setGender} required>
+                        <Select onValueChange={setGender} value={gender} required>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select your gender" />
                             </SelectTrigger>
@@ -822,10 +757,10 @@ function SettingsAccount() {
             <h2 className="mb-4 text-lg font-semibold">Account</h2>
             <div className="flex flex-row items-end gap-2">
                 <div className="flex w-full flex-col gap-2">
-                    <label htmlFor="email" className="text-sm text-muted-foreground">
+                    <label htmlFor="emailPlaceholder" className="text-sm text-muted-foreground">
                         Email
                     </label>
-                    <Input id="email" value={user?.email} className="w-full" disabled />
+                    <Input id="emailPlaceholder" value={user?.email} className="w-full" disabled />
                 </div>
                 <Dialog>
                     <DialogTrigger asChild>
@@ -840,10 +775,10 @@ function SettingsAccount() {
             </div>
             <div className="flex flex-row items-end gap-2">
                 <div className="flex w-full flex-col gap-2">
-                    <label htmlFor="password" className="text-sm text-muted-foreground">
+                    <label htmlFor="passwordPlaceholder" className="text-sm text-muted-foreground">
                         Password
                     </label>
-                    <Input value="********" className="w-full" disabled />
+                    <Input id="passwordPlaceholder" value="********" className="w-full" disabled />
                 </div>
                 <Dialog>
                     <DialogTrigger asChild>
@@ -885,8 +820,8 @@ function ChangeEmail() {
             <form className="flex flex-col gap-4" action={emailUpdate}>
                 <FieldGroup>
                     <Field>
-                        <FieldLabel htmlFor="newEmail">New Email</FieldLabel>
-                        <Input id="newEmail" name="newEmail" placeholder="Enter your new email" type="email" required />
+                        <FieldLabel htmlFor="email">New Email</FieldLabel>
+                        <Input id="email" name="email" placeholder="Enter your new email" type="email" required />
                     </Field>
                     <Field>
                         <div className="flex justify-between items-center">
@@ -929,6 +864,7 @@ function ChangeEmail() {
         </>
     )
 }
+
 function ChangePassword() {
     const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
     const conformPasswordField = useRef<HTMLDivElement>(null)
