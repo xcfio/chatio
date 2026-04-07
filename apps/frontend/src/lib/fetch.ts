@@ -6,7 +6,7 @@ import { Static } from "typebox"
 import ky from "ky"
 
 const api = ky.create({
-    prefixUrl: process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:7200",
+    prefix: process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:7200",
     credentials: "include",
     throwHttpErrors: false
 })
