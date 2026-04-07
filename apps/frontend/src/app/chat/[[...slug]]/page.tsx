@@ -140,7 +140,7 @@ export default ({ params }: any) => {
     const [width, setWidth] = useState(globalThis.innerWidth)
     const [loading, setLoading] = useState<boolean>(true)
     const [isChat, setIsChat] = useState(false)
-    const { id: [id] = [] } = use(params) as { id?: [string] }
+    const { slug: [slug] = [] } = use(params) as { slug?: [string] }
 
     useEffect(() => {
         const handler = () => setWidth(globalThis.innerWidth)
@@ -188,14 +188,14 @@ export default ({ params }: any) => {
     }
 
     useEffect(() => {
-        if (!id || !conversations) return
+        if (!slug || !conversations) return
 
-        const conversation = conversations.find((x) => x.id === id)
+        const conversation = conversations.find((x) => x.id === slug)
         if (conversation) {
             setCurrentConversation(conversation)
             setIsChat(true)
         }
-    }, [id, conversations])
+    }, [slug, conversations])
 
     useEffect(() => {
         if (!currentConversation) return
