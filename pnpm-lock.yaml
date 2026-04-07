@@ -45,8 +45,8 @@ importers:
         specifier: ^6.1.0
         version: 6.1.0(typebox@1.1.9)
       discord-api-types:
-        specifier: ^0.38.43
-        version: 0.38.43
+        specifier: ^0.38.44
+        version: 0.38.44
       drizzle-orm:
         specifier: 1.0.0-beta.20
         version: 1.0.0-beta.20(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.8)(typebox@1.1.9)(zod@4.3.6)
@@ -2105,8 +2105,8 @@ packages:
     resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
     engines: {node: '>=0.3.1'}
 
-  discord-api-types@0.38.43:
-    resolution: {integrity: sha512-sSoBf/nK6m7BGtw65mi+QBuvEWaHE8MMziFLqWL+gT6ME/BLg34dRSVKS3Husx40uU06bvxUc3/X+D9Y6/zAbw==}
+  discord-api-types@0.38.44:
+    resolution: {integrity: sha512-q91MgBzP/gRaCLIbQTaOrOhbD8uVIaPKxpgX2sfFB2nZ9nSiTYM9P3NFQ7cbO6NCxctI6ODttc67MI+YhIfILg==}
 
   dotenv@17.4.0:
     resolution: {integrity: sha512-kCKF62fwtzwYm0IGBNjRUjtJgMfGapII+FslMHIjMR5KTnwEmBmWLDRSnc3XSNP8bNy34tekgQyDT0hr7pERRQ==}
@@ -5663,7 +5663,7 @@ snapshots:
 
   diff@8.0.4: {}
 
-  discord-api-types@0.38.43: {}
+  discord-api-types@0.38.44: {}
 
   dotenv@17.4.0: {}
 
@@ -6980,7 +6980,7 @@ snapshots:
 
   snowtransfer@0.17.5:
     dependencies:
-      discord-api-types: 0.38.43
+      discord-api-types: 0.38.44
 
   socket.io-adapter@2.5.6:
     dependencies:
