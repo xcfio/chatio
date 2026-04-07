@@ -600,6 +600,8 @@ function SettingsProfile() {
                 console.log(error)
                 return tx("error", "Validation failed", "Failed to fetch avatar image")
             }
+        } else {
+            delete data.avatar
         }
 
         const output = await ftc.auth.updateUser(data)
@@ -1001,6 +1003,7 @@ function Error({ error }: { error: string }) {
         </div>
     )
 }
+
 function Loading({ message = "Loading..." }: { message?: string }) {
     return (
         <div className="flex h-screen w-full items-center justify-center">

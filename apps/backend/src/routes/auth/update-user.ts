@@ -26,6 +26,7 @@ export default function UpdateUser(fastify: Awaited<ReturnType<typeof main>>) {
                 const { id } = request.payload
                 const data = request.body
 
+                if (!data.avatar) data.avatar = null
                 const [oldUser] = await db.select().from(table.users).where(eq(table.users.id, id))
 
                 if (!oldUser) {

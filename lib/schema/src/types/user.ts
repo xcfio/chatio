@@ -7,7 +7,7 @@ export const RegisterUser = Type.Object({
     name: UserSelect.properties.name,
     username: Type.String({ pattern: "^[a-zA-Z][a-zA-Z0-9-]{2,11}$" }),
     gender: UserSelect.properties.gender,
-    avatar: Type.Optional(Type.String({ format: "uri" })),
+    avatar: Type.Optional(Type.String({ format: "url" })),
     password: Type.String({ minLength: 6, maxLength: 30 })
 })
 
@@ -17,19 +17,20 @@ export const LoginUser = Type.Object({
 })
 
 export const ChangeUserEmail = Type.Object({
-    email: Type.String(),
+    email: Type.String({ format: "email" }),
     password: Type.String()
 })
+
 export const ChangeUserPassword = Type.Object({
     oldPassword: Type.String(),
-    newPassword: Type.String()
+    newPassword: Type.String({ minLength: 6, maxLength: 30 })
 })
 
 export const PublicUser = Type.Object({
     id: UUID,
     name: UserSelect.properties.name,
     username: Type.String({ pattern: "^[a-zA-Z][a-zA-Z0-9-]{2,11}$" }),
-    avatar: Nullable(Type.String({ format: "uri" })),
+    avatar: Nullable(Type.String({ format: "url" })),
     createdAt: Date
 })
 
