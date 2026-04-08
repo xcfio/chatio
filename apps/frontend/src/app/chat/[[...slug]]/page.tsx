@@ -18,7 +18,15 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { HoverCardTrigger, HoverCardContent, HoverCard } from "@/components/ui/hover-card"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { AuthenticatedUser, ChangeUserInfo, Conversation, Message, PublicUser } from "schema"
+import {
+    AuthenticatedUser,
+    ChangeUserEmail,
+    ChangeUserInfo,
+    ChangeUserPassword,
+    Conversation,
+    Message,
+    PublicUser
+} from "schema"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
     AlertCircleIcon,
@@ -28,11 +36,9 @@ import {
     Home,
     LoaderCircle,
     LogOut,
-    Menu,
     MessageCircle,
     Monitor,
     MoonIcon,
-    Paintbrush,
     Palette,
     Search,
     Send,
@@ -737,7 +743,7 @@ function SettingsProfile() {
 }
 
 function SettingsAccount() {
-    const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
+    const [user] = useContext(UserContext) ?? [null, () => {}]
     const router = useRouter()
 
     async function handleLogout() {
@@ -806,13 +812,30 @@ function SettingsAccount() {
 }
 
 function ChangeEmail() {
-    const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
+    const [_, setUser] = useContext(UserContext) ?? [null, () => {}]
     const [showPassword, setShowPassword] = useState(false)
     const passwordRef = useRef<HTMLInputElement>(null)
 
     async function emailUpdate(form: FormData) {
         const data = Object.fromEntries(form.entries())
-        console.log(data)
+
+        if (!Value.Check(ChangeUserEmail, data)) {
+            const errors = [...Value.Errors(ChangeUserEmail, data)]
+            const message = errors.map((e: any) => `${e.path ?? "Form"}: ${e.message}`).join(", ")
+            tx("error", "Validation failed", message)
+            return
+        }
+
+        const output = await ftc.auth.changeEmail(data)
+        if (typeof output === "string") {
+            tx("error", "Changing email failed", output)
+            return
+        } else {
+            setUser(output)
+            window.sessionStorage.setItem("user", JSON.stringify(output))
+            tx("success", "Email changed", `Your email has been updated to ${output.email}`)
+            return
+        }
     }
 
     return (
@@ -868,15 +891,37 @@ function ChangeEmail() {
 }
 
 function ChangePassword() {
-    const [user, setUser] = useContext(UserContext) ?? [null, () => {}]
+    const [_, setUser] = useContext(UserContext) ?? [null, () => {}]
+    const [showPassword, setShowPassword] = useState(false)
     const conformPasswordField = useRef<HTMLDivElement>(null)
     const passwordField = useRef<HTMLDivElement>(null)
     const passwordRef = useRef<HTMLInputElement>(null)
-    const [showPassword, setShowPassword] = useState(false)
 
     async function passwordUpdate(form: FormData) {
         const data = Object.fromEntries(form.entries())
-        console.log(data)
+
+        if (data.newPassword !== data.confirmPassword) {
+            tx("error", "Validation failed", "New password and confirm password do not match")
+            return
+        }
+
+        if (!Value.Check(ChangeUserPassword, data)) {
+            const errors = [...Value.Errors(ChangeUserPassword, data)]
+            const message = errors.map((e: any) => `${e.path ?? "Form"}: ${e.message}`).join(", ")
+            tx("error", "Validation failed", message)
+            return
+        }
+
+        const output = await ftc.auth.changePassword(data)
+        if (typeof output === "string") {
+            tx("error", "Changing password failed", output)
+            return
+        } else {
+            setUser(output)
+            window.sessionStorage.setItem("user", JSON.stringify(output))
+            tx("success", "Password changed", `Your password has been updated`)
+            return
+        }
     }
 
     function passwordCheck(event: InputEvent<HTMLInputElement>) {
@@ -899,7 +944,7 @@ function ChangePassword() {
                 <FieldGroup>
                     <Field>
                         <div className="flex justify-between items-center">
-                            <FieldLabel htmlFor="password">Current Password</FieldLabel>
+                            <FieldLabel htmlFor="oldPassword">Current Password</FieldLabel>
                             <Link
                                 type="button"
                                 variant="link"
@@ -912,7 +957,7 @@ function ChangePassword() {
                         <InputGroup>
                             <InputGroupInput
                                 id="oldPassword"
-                                name="password"
+                                name="oldPassword"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Enter your current password"
                                 required
