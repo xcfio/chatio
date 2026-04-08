@@ -25,11 +25,13 @@ import {
     ChangeUserPassword,
     Conversation,
     Message,
+    MessageContent,
     PublicUser
 } from "schema"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
     AlertCircleIcon,
+    ArrowLeft,
     Eye,
     EyeOff,
     HelpCircle,
@@ -264,10 +266,12 @@ export default ({ params }: any) => {
 }
 
 function Chat() {
+    const [currentConversation, setCurrentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
     const [conversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
     const [members] = useContext(MembersContext) ?? [[], () => {}]
-    const [messages] = useContext(MessageContext) ?? [[], () => {}]
+    const [messages, setMessages] = useContext(MessageContext) ?? [[], () => {}]
     const [user] = useContext(UserContext) ?? [null, () => {}]
+    const [isChat, setIsChat] = useContext(ChatContext) ?? [[], () => {}]
 
     const opponent = members.find((m) => m.id === conversation?.participant)
     const displayName = opponent?.name ?? user?.name ?? "Unknown User"
@@ -280,6 +284,26 @@ function Chat() {
               .toUpperCase()
         : displayName.slice(0, 2).toUpperCase()
 
+    async function sendMessage(form: FormData) {
+        const content = Object.fromEntries(form.entries()).message
+
+        if (!Value.Check(MessageContent, content)) {
+            const errors = [...Value.Errors(MessageContent, content)]
+            const message = errors.map((e: any) => `${e.path ?? "Form"}: ${e.message}`).join(", ")
+            tx("error", "Validation failed", message)
+            return
+        }
+
+        const output = await ftc.messages.send(currentConversation?.id ?? "", content)
+        if (typeof output === "string") {
+            tx("error", "Sending message failed", output)
+            return
+        } else {
+            setMessages((prev) => [...prev, output])
+            return
+        }
+    }
+
     if (!messages.length) {
         return (
             <div className="flex h-full w-full items-center justify-center">
@@ -290,13 +314,17 @@ function Chat() {
 
     return (
         <div className="flex flex-col h-full w-full">
-            <div className="flex items-end gap-4 rounded-b-2xl bg-muted p-4">
-                <Avatar className="scale-125">
+            <div className="flex items-center gap-4 rounded-b-2xl bg-muted p-4">
+                <Button variant="ghost" className="md:hidden px-2 text-foreground/50" onClick={() => setIsChat(false)}>
+                    <ArrowLeft className="scale-140" />
+                    <span className="sr-only">Back</span>
+                </Button>
+                <Avatar className="scale-140">
                     {opponent?.avatar && <AvatarImage src={opponent.avatar} alt={displayName} />}
                     <AvatarFallback>{fallbackInitials}</AvatarFallback>
                     {/* <AvatarBadge className="bg-green-600 dark:bg-green-800" /> */}
                 </Avatar>
-                <p className="font-comfortaa tracking-tight">{displayName}</p>
+                <span className="font-comfortaa tracking-tight">{displayName}</span>
             </div>
             <ScrollArea className="h-full w-full px-2 py-2">
                 {messages.flat().map((message) => {
@@ -334,10 +362,17 @@ function Chat() {
                     )
                 })}
             </ScrollArea>
-            <form className="mt-auto bg-muted p-4">
+            <form action={sendMessage} className="mt-auto bg-muted p-4">
                 <div className="mx-auto flex w-full items-center gap-2">
-                    <Input placeholder="Type a message..." />
-                    <Button type="submit" className="shrink-0">
+                    <Input
+                        id="message"
+                        name="message"
+                        placeholder="Type a message..."
+                        minLength={1}
+                        maxLength={2000}
+                        required
+                    />
+                    <Button type="submit">
                         <Send className="h-4 w-4" />
                         <span className="sr-only">Send</span>
                     </Button>
