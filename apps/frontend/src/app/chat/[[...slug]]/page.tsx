@@ -8,7 +8,6 @@ import {
     SetStateAction,
     SVGProps,
     SyntheticEvent,
-    Usable,
     use,
     useContext,
     useEffect,
@@ -32,21 +31,25 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
     AlertCircleIcon,
     ArrowLeft,
+    CopyIcon,
     Eye,
     EyeOff,
     HelpCircle,
     Home,
+    Info,
     LoaderCircle,
     LogOut,
     MessageCircle,
     Monitor,
     MoonIcon,
     Palette,
+    PencilIcon,
     Search,
     Send,
     SettingsIcon,
     Star,
     SunIcon,
+    TrashIcon,
     UserCircle
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -76,7 +79,14 @@ import {
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { Github } from "@/components/icon/github"
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@/components/ui/dialog"
 import {
     Sidebar,
     SidebarContent,
@@ -101,6 +111,15 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Link } from "@/components/ui/link"
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuGroup,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger
+} from "@/components/ui/context-menu"
+import { Textarea } from "@/components/ui/textarea"
 
 export const ChatContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 export const DialogContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
@@ -304,6 +323,10 @@ function Chat() {
         }
     }
 
+    async function editMessage(id: string, content: string) {}
+
+    async function deleteMessage(id: string) {}
+
     if (!messages.length) {
         return (
             <div className="flex h-full w-full items-center justify-center">
@@ -313,7 +336,7 @@ function Chat() {
     }
 
     return (
-        <div className="flex flex-col h-full w-full">
+        <div className="flex flex-col h-full w-full overflow-hidden">
             <div className="flex items-center gap-4 rounded-b-2xl bg-muted p-4">
                 <Button variant="ghost" className="md:hidden px-2 text-foreground/50" onClick={() => setIsChat(false)}>
                     <ArrowLeft className="scale-140" />
@@ -326,58 +349,233 @@ function Chat() {
                 </Avatar>
                 <span className="font-comfortaa tracking-tight">{displayName}</span>
             </div>
-            <ScrollArea className="h-full w-full px-2 py-2">
-                {messages.flat().map((message) => {
-                    const isCurrentUser = message.sender === user?.id
 
-                    return (
-                        <div className="py-2 w-full flex flex-col" key={message.id}>
-                            <HoverCard openDelay={10} closeDelay={100}>
-                                <HoverCardTrigger asChild>
-                                    <Card
-                                        className={cn(
-                                            "block max-w-[45vw] px-3 py-2 mx-2",
-                                            isCurrentUser
-                                                ? "self-end bg-card-foreground text-card"
-                                                : "self-start bg-card text-card-foreground"
-                                        )}
-                                    >
-                                        {message.content}
-                                    </Card>
-                                </HoverCardTrigger>
-                                <HoverCardContent className="flex w-64 flex-col gap-0.5 text-xs">
-                                    {!isCurrentUser && (
-                                        <p>
-                                            Sent by:
-                                            {members.find((u) => u.id === message.sender)?.name ?? "Unknown User"}
-                                        </p>
-                                    )}
-                                    {message.updatedAt && message.updatedAt !== message.createdAt && (
-                                        <p>Updated At: {new Date(message.updatedAt).toLocaleString()}</p>
-                                    )}
-                                    <p>Created At: {new Date(message.createdAt).toLocaleString()}</p>
-                                </HoverCardContent>
-                            </HoverCard>
-                        </div>
-                    )
-                })}
+            <ScrollArea className="flex-1 min-h-0 w-full px-4 py-4">
+                {messages.flat().map((message) => (
+                    <MessageComponent
+                        key={message.id}
+                        message={message}
+                        members={members}
+                        user={user}
+                        editMessage={editMessage}
+                        deleteMessage={deleteMessage}
+                    />
+                ))}
             </ScrollArea>
-            <form action={sendMessage} className="mt-auto bg-muted p-4">
-                <div className="mx-auto flex w-full items-center gap-2">
-                    <Input
+
+            <form action={sendMessage} className="mt-auto bg-muted px-4 py-3">
+                <div className="mx-auto flex w-full items-end gap-2">
+                    <Textarea
                         id="message"
                         name="message"
                         placeholder="Type a message..."
                         minLength={1}
                         maxLength={2000}
                         required
+                        rows={1}
+                        className="min-h-0 resize-none overflow-hidden leading-relaxed py-2"
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault()
+                                e.currentTarget.form?.requestSubmit()
+                            }
+                        }}
+                        onInput={(e) => {
+                            const el = e.currentTarget
+                            el.style.height = "auto"
+                            el.style.height = `${el.scrollHeight}px`
+                        }}
                     />
-                    <Button type="submit">
+                    <Button type="submit" size="icon" className="shrink-0 mb-0.5">
                         <Send className="h-4 w-4" />
                         <span className="sr-only">Send</span>
                     </Button>
                 </div>
             </form>
+        </div>
+    )
+}
+
+function MessageComponent({
+    user,
+    members,
+    message,
+    editMessage,
+    deleteMessage
+}: {
+    message: Static<typeof Message>
+    members: Array<Static<typeof PublicUser>>
+    user: Static<typeof AuthenticatedUser> | null
+    editMessage: (id: string, content: string) => Promise<void>
+    deleteMessage: (id: string) => Promise<void>
+}) {
+    const [isDetailsDialogOpen, setDetailsDialogOpen] = useState(false)
+    const [isEditDialogOpen, setEditDialogOpen] = useState(false)
+
+    const isCurrentUser = message.sender === user?.id
+    const sender = members.find((u) => u.id === message.sender)
+
+    const urlRegex = /(https?:\/\/[^\s]+)/g
+    const parts = message.content.split(urlRegex)
+
+    return (
+        <div className={cn("py-1 w-full flex", isCurrentUser ? "justify-end" : "justify-start")} key={message.id}>
+            {!isCurrentUser && (
+                <Avatar className="h-7 w-7 mt-1 mr-2 shrink-0 self-center">
+                    {sender?.avatar && <AvatarImage src={sender.avatar} />}
+                    <AvatarFallback className="text-[10px]">
+                        {sender?.name?.slice(0, 2).toUpperCase() ?? "??"}
+                    </AvatarFallback>
+                </Avatar>
+            )}
+
+            <ContextMenu>
+                <ContextMenuTrigger>
+                    <HoverCard openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                            <div
+                                className={cn(
+                                    "group relative max-w-[65vw] md:max-w-[45vw] px-4 py-2.5 rounded-2xl text-sm leading-relaxed cursor-default select-text",
+                                    "transition-opacity duration-150",
+                                    isCurrentUser
+                                        ? "rounded-br-sm bg-primary text-primary-foreground"
+                                        : "rounded-bl-sm bg-muted text-foreground"
+                                )}
+                            >
+                                <p className="whitespace-pre-wrap wrap-break-word">
+                                    {parts.map((part, i) =>
+                                        urlRegex.test(part) ? (
+                                            <a
+                                                key={i}
+                                                href={part}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="underline underline-offset-2 opacity-90 hover:opacity-100"
+                                            >
+                                                {part}
+                                            </a>
+                                        ) : (
+                                            part
+                                        )
+                                    )}
+                                </p>
+                                {message.updatedAt && message.updatedAt !== message.createdAt && (
+                                    <span className="ml-1.5 text-[10px] opacity-50 italic">edited</span>
+                                )}
+                            </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent
+                            side={isCurrentUser ? "left" : "right"}
+                            align="center"
+                            className="w-56 p-3 text-xs space-y-1"
+                        >
+                            {!isCurrentUser && (
+                                <p className="font-medium text-foreground">{sender?.name ?? "Unknown User"}</p>
+                            )}
+                            <p className="text-muted-foreground">{new Date(message.createdAt).toLocaleString()}</p>
+                            {message.updatedAt && message.updatedAt !== message.createdAt && (
+                                <p className="text-muted-foreground">
+                                    Edited {new Date(message.updatedAt).toLocaleString()}
+                                </p>
+                            )}
+                        </HoverCardContent>
+                    </HoverCard>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-44">
+                    <ContextMenuGroup>
+                        <ContextMenuItem className="gap-2">
+                            <CopyIcon className="h-3.5 w-3.5" /> Copy
+                        </ContextMenuItem>
+                        {isCurrentUser && (
+                            <ContextMenuItem className="gap-2" onClick={() => setEditDialogOpen(true)}>
+                                <PencilIcon className="h-3.5 w-3.5" />
+                                Edit
+                            </ContextMenuItem>
+                        )}
+                    </ContextMenuGroup>
+                    {isCurrentUser && (
+                        <>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                                variant="destructive"
+                                className="gap-2"
+                                onClick={() => deleteMessage(message.id)}
+                            >
+                                <TrashIcon className="h-3.5 w-3.5" /> Delete
+                            </ContextMenuItem>
+                        </>
+                    )}
+                    <ContextMenuItem className="gap-2" onClick={() => setDetailsDialogOpen(true)}>
+                        <Info className="h-3.5 w-3.5" /> Details
+                    </ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Message</DialogTitle>
+                        <DialogDescription>Modify the content of your message.</DialogDescription>
+                        <form
+                            className="flex pt-2"
+                            action={(form) => {
+                                editMessage(message.id, Object.fromEntries(form.entries()).message as string)
+                                setEditDialogOpen(false)
+                            }}
+                        >
+                            <FieldGroup>
+                                <Field>
+                                    <FieldLabel htmlFor="content">Message</FieldLabel>
+                                    <Textarea
+                                        id="content"
+                                        name="content"
+                                        placeholder="Enter your new content"
+                                        defaultValue={message.content}
+                                        maxLength={2000}
+                                        minLength={1}
+                                        rows={1}
+                                        required
+                                    />
+                                </Field>
+                                <Field orientation="horizontal">
+                                    <Button type="submit">Edit</Button>
+                                </Field>
+                            </FieldGroup>
+                        </form>
+                    </DialogHeader>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isDetailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Message Details</DialogTitle>
+                        <DialogDescription>Information about this message</DialogDescription>
+                    </DialogHeader>
+                    <div className="text-sm space-y-2">
+                        {!isCurrentUser && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Sender</span>
+                                <span>{sender?.name ?? "Unknown"}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Sent</span>
+                            <span>{new Date(message.createdAt).toLocaleString()}</span>
+                        </div>
+                        {message.updatedAt && message.updatedAt !== message.createdAt && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Edited</span>
+                                <span>{new Date(message.updatedAt).toLocaleString()}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Message ID</span>
+                            <span className="font-mono text-xs text-muted-foreground">{message.id}</span>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

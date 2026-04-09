@@ -1,4 +1,4 @@
-import { eq, and, desc, lt, not, arrayContains, gt } from "drizzle-orm"
+import { eq, and, asc, lt, not, arrayContains, gt } from "drizzle-orm"
 import { CreateError, toTypeBox, xcf } from "../../function"
 import { ErrorResponse, Message, UUID } from "schema"
 import { db, table } from "../../database"
@@ -75,7 +75,7 @@ export default function GetMessages(fastify: Awaited<ReturnType<typeof main>>) {
                     .select()
                     .from(table.messages)
                     .where(and(...whereConditions))
-                    .orderBy(desc(table.messages.createdAt))
+                    .orderBy(asc(table.messages.id))
                     .limit(limit)
                     .offset(offset)
 
