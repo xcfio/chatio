@@ -122,6 +122,14 @@ import {
 } from "@/components/ui/context-menu"
 import { Textarea } from "@/components/ui/textarea"
 import { getSocket } from "@/lib/socket"
+import {
+    Popover,
+    PopoverAnchor,
+    PopoverContent,
+    PopoverDescription,
+    PopoverHeader,
+    PopoverTitle
+} from "@/components/ui/popover"
 
 export const ChatContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 export const DialogContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
@@ -215,6 +223,10 @@ export default ({ params }: any) => {
 
     async function retrieveMembers(conversations: Array<Static<typeof Conversation>>) {
         const users = Array.from(new Set(conversations.map((x) => x.participant)))
+        if (!users.length) {
+            setLoading(false)
+            return setMembers([])
+        }
         const res = await ftc.user.getAll({ id: users })
         if (typeof res === "string") return setError(res)
         setLoading(false)
@@ -490,7 +502,7 @@ function Chat() {
                                             <Copy className="size-3" />
                                         </button>
                                     </div>
-                                    <p className="text-[13px] font-medium font-mono">{opponent?.id}</p>
+                                    <p className="text-[13px] font-mono">{opponent?.id}</p>
                                 </div>
                                 <div className="bg-muted rounded-lg px-3 py-2.5">
                                     <p className="text-[11px] text-muted-foreground mb-0.5">Joined</p>
@@ -781,6 +793,7 @@ function User() {
     const [___, setIsChat] = useContext(ChatContext) ?? [[], () => {}]
     const [members] = useContext(MembersContext) ?? [[], () => {}]
     const [error, setError] = useState<string | null>(null)
+    const [isPopoverOpen, setPopoverOpen] = useState(false)
 
     async function handleConversationSelect(id: string) {
         const res = await ftc.conversations.getOne(id, "user")
@@ -793,51 +806,76 @@ function User() {
     if (error) return <Error error={error} />
 
     return (
-        <div className="flex flex-col">
+        <div className="flex h-full flex-col justify-start">
             <div className="bg-muted rounded-b-md p-4">
-                <div className="flex flex-row justify-between  mb-1">
+                <div className="flex flex-row justify-between mb-1">
                     <h1 className="font-comfortaa text-2xl mb-2.5 tracking-tight text-foreground">Chatio</h1>
                     <Dropdown />
                 </div>
-                <div className="relative">
-                    <Input className="pr-10" placeholder="Search user..." />
-                    <Search
-                        role="button"
-                        className="absolute scale-80 right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground/50"
-                    />
-                </div>
+
+                <Popover open={isPopoverOpen} onOpenChange={setPopoverOpen}>
+                    <div className="relative">
+                        <PopoverAnchor asChild>
+                            <Input
+                                className="pr-10"
+                                placeholder="Search user..."
+                                onInput={(event) => {
+                                    event.preventDefault()
+                                    setPopoverOpen(!!event.currentTarget.value)
+                                }}
+                            />
+                        </PopoverAnchor>
+                        <Search
+                            role="button"
+                            className="absolute scale-80 right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground/50"
+                        />
+                    </div>
+
+                    <PopoverContent align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                        <PopoverHeader>
+                            <PopoverTitle>Search Results</PopoverTitle>
+                            <PopoverDescription>Matching users will appear here.</PopoverDescription>
+                        </PopoverHeader>
+                    </PopoverContent>
+                </Popover>
             </div>
-            <ScrollArea>
-                {members.map((user, index) => {
-                    return (
-                        <div key={index}>
-                            <Card
-                                role="button"
-                                className="flex flex-row items-center gap-2 p-2 m-2 hover:bg-card/50 cursor-pointer"
-                                onClick={() => handleConversationSelect(user.id)}
-                            >
-                                <Avatar>
-                                    {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
-                                    <AvatarFallback>
-                                        {user.name.includes(" ")
-                                            ? user.name
-                                                  .split(" ")
-                                                  .map((w) => w[0])
-                                                  .join("")
-                                                  .slice(0, 2)
-                                                  .toUpperCase()
-                                            : user.name?.slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                    {online.has(user.id) && (
-                                        <AvatarBadge className="bg-green-600 dark:bg-green-800 ring-0" />
-                                    )}
-                                </Avatar>
-                                <p>{user.name}</p>
-                            </Card>
-                        </div>
-                    )
-                })}
-            </ScrollArea>
+            {members.length ? (
+                <ScrollArea>
+                    {members.map((user, index) => {
+                        return (
+                            <div key={index}>
+                                <Card
+                                    role="button"
+                                    className="flex flex-row items-center gap-2 p-2 m-2 hover:bg-card/50 cursor-pointer"
+                                    onClick={() => handleConversationSelect(user.id)}
+                                >
+                                    <Avatar>
+                                        {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
+                                        <AvatarFallback>
+                                            {user.name.includes(" ")
+                                                ? user.name
+                                                      .split(" ")
+                                                      .map((w) => w[0])
+                                                      .join("")
+                                                      .slice(0, 2)
+                                                      .toUpperCase()
+                                                : user.name?.slice(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                        {online.has(user.id) && (
+                                            <AvatarBadge className="bg-green-600 dark:bg-green-800 ring-0" />
+                                        )}
+                                    </Avatar>
+                                    <p>{user.name}</p>
+                                </Card>
+                            </div>
+                        )
+                    })}
+                </ScrollArea>
+            ) : (
+                <div className="flex items-center justify-center m-auto md:pb-30">
+                    <p className="text-muted-foreground">Find a user to chat with.</p>
+                </div>
+            )}
         </div>
     )
 }
