@@ -11,6 +11,14 @@ export function getSocket() {
             withCredentials: true,
             transports: ["websocket"]
         }).connect()
+
+        socket.on("connect_error", (error) => {
+            console.error("Socket connection error:", error)
+        })
+
+        socket.once("connect", () => {
+            console.log("Socket connected:", socket.id)
+        })
     }
     return socket
 }

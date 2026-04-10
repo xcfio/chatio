@@ -120,6 +120,7 @@ import {
     ContextMenuTrigger
 } from "@/components/ui/context-menu"
 import { Textarea } from "@/components/ui/textarea"
+import { getSocket } from "@/lib/socket"
 
 export const ChatContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 export const DialogContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
@@ -225,6 +226,26 @@ export default ({ params }: any) => {
     }, [slug, conversations])
 
     useEffect(() => {
+        if (!user) return
+        const socket = getSocket()
+
+        socket.on("message_created", (message, conversationId) => {
+            if (currentConversation?.id !== conversationId) return
+            setMessages((x) => [...x, message])
+        })
+
+        socket.on("message_edited", (message, conversationId) => {
+            if (currentConversation?.id !== conversationId) return
+            setMessages((x) => x.map((y) => (y.id === message.id ? message : y)))
+        })
+
+        socket.on("message_deleted", (messageId, conversationId) => {
+            if (currentConversation?.id !== conversationId) return
+            setMessages((x) => x.filter((y) => y.id !== messageId))
+        })
+    }, [user, currentConversation])
+
+    useEffect(() => {
         if (!currentConversation) return
 
         ftc.messages
@@ -294,14 +315,6 @@ function Chat() {
 
     const opponent = members.find((m) => m.id === conversation?.participant)
     const displayName = opponent?.name ?? user?.name ?? "Unknown User"
-    const fallbackInitials = displayName.includes(" ")
-        ? displayName
-              .split(" ")
-              .map((w) => w[0])
-              .join("")
-              .slice(0, 2)
-              .toUpperCase()
-        : displayName.slice(0, 2).toUpperCase()
 
     async function sendMessage(form: FormData) {
         const content = Object.fromEntries(form.entries()).message
@@ -344,13 +357,13 @@ function Chat() {
                 </Button>
                 <Avatar className="scale-140">
                     {opponent?.avatar && <AvatarImage src={opponent.avatar} alt={displayName} />}
-                    <AvatarFallback>{fallbackInitials}</AvatarFallback>
+                    <AvatarFallback>{fallback(displayName)}</AvatarFallback>
                     {/* <AvatarBadge className="bg-green-600 dark:bg-green-800" /> */}
                 </Avatar>
                 <span className="font-comfortaa tracking-tight">{displayName}</span>
             </div>
 
-            <ScrollArea className="flex-1 min-h-0 w-full px-4 py-4">
+            <ScrollArea className="flex-1 min-h-0 w-full px-2 py-0">
                 {messages.flat().map((message) => (
                     <MessageComponent
                         key={message.id}
@@ -373,7 +386,7 @@ function Chat() {
                         maxLength={2000}
                         required
                         rows={1}
-                        className="min-h-0 resize-none overflow-hidden leading-relaxed py-2"
+                        className="min-h-0 resize-none overflow-hidden leading-relaxed pb-2 pt-1"
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault()
@@ -421,11 +434,9 @@ function MessageComponent({
     return (
         <div className={cn("py-1 w-full flex", isCurrentUser ? "justify-end" : "justify-start")} key={message.id}>
             {!isCurrentUser && (
-                <Avatar className="h-7 w-7 mt-1 mr-2 shrink-0 self-center">
+                <Avatar className="block scale-115 ml-1 mr-2 shrink-0 self-center">
                     {sender?.avatar && <AvatarImage src={sender.avatar} />}
-                    <AvatarFallback className="text-[10px]">
-                        {sender?.name?.slice(0, 2).toUpperCase() ?? "??"}
-                    </AvatarFallback>
+                    <AvatarFallback className="text-[10px]">{fallback(sender?.name ?? "N/A")}</AvatarFallback>
                 </Avatar>
             )}
 
@@ -1268,6 +1279,17 @@ function ChangePassword() {
 
 function tx(type: "success" | "error" | "warning" | "info", text: string, description?: string) {
     return toast[type](text, { description, position: "top-right" })
+}
+
+function fallback(name: string) {
+    return name.includes(" ")
+        ? name
+              .split(" ")
+              .map((w) => w[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()
+        : name.slice(0, 2).toUpperCase()
 }
 
 function Error({ error }: { error: string }) {

@@ -3,7 +3,6 @@ import { and, eq, isNull } from "drizzle-orm"
 import UserStatusChanged from "./user-status"
 import TypingStatusChanged from "./typing"
 import { db, table } from "../database"
-import Errors from "./errors"
 import { main } from "../"
 
 export default (fastify: Awaited<ReturnType<typeof main>>) => async (socket: Required<AuthenticatedSocket>) => {
@@ -34,7 +33,6 @@ export default (fastify: Awaited<ReturnType<typeof main>>) => async (socket: Req
         socket.user = user
         socket.join(socket.user.id)
 
-        Errors(socket)
         UserStatusChanged(socket)
         TypingStatusChanged(socket)
     } catch (error) {

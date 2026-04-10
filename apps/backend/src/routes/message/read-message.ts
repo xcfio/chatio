@@ -1,5 +1,5 @@
 import { and, arrayContains, eq } from "drizzle-orm"
-import { CreateError, xcf } from "../../function"
+import { CreateError, toTypeBox, xcf } from "../../function"
 import { ErrorResponse, UUID } from "schema"
 import { db, table } from "../../database"
 import { Type } from "typebox"
@@ -48,13 +48,13 @@ export default function ReadMessage(fastify: Awaited<ReturnType<typeof main>>) {
 
                 const [updatedMessage] = await db
                     .update(table.messages)
-                    .set({ status: [...messages.status, "read"] })
+                    .set({ status: [...messages.status, "read"], updatedAt: messages.updatedAt })
                     .where(eq(table.messages.id, id))
                     .returning()
 
                 if (fastify.io) {
                     const toSend = conversations.users.filter((x) => x !== userId)
-                    fastify.io.to(toSend).emit("message_read", updatedMessage.id, updatedMessage.conversation)
+                    fastify.io.to(toSend).emit("message_edited", toTypeBox(updatedMessage), updatedMessage.conversation)
                 }
 
                 return reply.code(200).send({ success: true })

@@ -14,7 +14,7 @@ export default async function TypingStatusChanged(socket: Required<Authenticated
                     and(eq(table.conversations.id, conversationId), arrayContains(table.conversations.users, [user.id]))
                 )
 
-            if (!conversation) return socket.emit("errors", "Contract not found")
+            if (!conversation) return socket.emit("errors", "Conversation not found")
             const toSend = conversation.users.filter((x) => x !== user.id)
             socket.to(toSend).emit("typing", user.id, conversation.id, status)
         } catch (error) {

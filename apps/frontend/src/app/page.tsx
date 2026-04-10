@@ -8,7 +8,6 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Page } from "@/components/page"
-import { getSocket } from "@/lib/socket"
 import { Catch } from "@/lib/catch"
 import { ftc } from "@/lib/fetch"
 
@@ -45,8 +44,6 @@ export default () => {
             router.push("/chat")
             return
         }
-
-        getSocket()
     }
     useEffect(() => {
         getUser()
