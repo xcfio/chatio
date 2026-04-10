@@ -31,6 +31,7 @@ export const PublicUser = Type.Object({
     name: UserSelect.properties.name,
     username: Type.String({ pattern: "^[a-zA-Z][a-zA-Z0-9-]{2,11}$" }),
     avatar: Nullable(Type.String({ format: "url" })),
+    gender: UserSelect.properties.gender,
     createdAt: Date
 })
 

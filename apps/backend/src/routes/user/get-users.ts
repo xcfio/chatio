@@ -17,7 +17,7 @@ export default function GetUsers(fastify: Awaited<ReturnType<typeof main>>) {
                 limit: Type.Optional(Type.Integer({ maximum: 100, minimum: 1 })),
                 search: Type.Optional(Type.String())
             }),
-            body: Type.Optional(Type.Array(UUID, { maxItems: 100, minItems: 1 })),
+            body: Type.Optional(Type.Array(UUID, { maxItems: 100, minItems: 0 })),
             response: {
                 200: Type.Array(PublicUser, { maxItems: 100, minItems: 0 }),
                 401: ErrorResponse(401, "Unauthorized - authentication required"),

@@ -31,6 +31,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
     AlertCircleIcon,
     ArrowLeft,
+    Copy,
     CopyIcon,
     Eye,
     EyeOff,
@@ -125,6 +126,9 @@ import { getSocket } from "@/lib/socket"
 export const ChatContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 export const DialogContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 
+export const OnlineContext = createContext<[Set<string>, Dispatch<SetStateAction<Set<string>>>]>([new Set(), () => {}])
+export const TypingContext = createContext<[Set<string>, Dispatch<SetStateAction<Set<string>>>]>([new Set(), () => {}])
+
 export const UserContext = createContext<
     [Static<typeof AuthenticatedUser> | null, Dispatch<SetStateAction<Static<typeof AuthenticatedUser> | null>>] | null
 >(null)
@@ -164,11 +168,13 @@ export default ({ params }: any) => {
     const [messages, setMessages] = useState<Array<Static<typeof Message>>>([])
     const [members, setMembers] = useState<Array<Static<typeof PublicUser>>>([])
     const [isDialogOpen, setDialogOpen] = useState<boolean>(false)
+    const [online, setOnline] = useState<Set<string>>(new Set())
+    const [typing, setTyping] = useState<Set<string>>(new Set())
     const [error, setError] = useState<string | null>(null)
-    const [width, setWidth] = useState(globalThis.innerWidth)
     const [loading, setLoading] = useState<boolean>(true)
     const [isChat, setIsChat] = useState(false)
     const { slug: [slug] = [] } = use(params) as { slug?: [string] }
+    const [width, setWidth] = useState(globalThis.innerWidth)
 
     useEffect(() => {
         const handler = () => setWidth(globalThis.innerWidth)
@@ -231,6 +237,7 @@ export default ({ params }: any) => {
 
         socket.on("message_created", (message, conversationId) => {
             if (currentConversation?.id !== conversationId) return
+            if (messages.filter((x) => x.id === message.id).shift()) return
             setMessages((x) => [...x, message])
         })
 
@@ -242,6 +249,35 @@ export default ({ params }: any) => {
         socket.on("message_deleted", (messageId, conversationId) => {
             if (currentConversation?.id !== conversationId) return
             setMessages((x) => x.filter((y) => y.id !== messageId))
+        })
+
+        socket.on("user_status_changed", (user, status) => {
+            switch (status) {
+                case "online": {
+                    setOnline((x) => new Set(x).add(user))
+                    break
+                }
+                case "offline": {
+                    setOnline((x) => new Set([...x].filter((y) => y !== user)))
+                    break
+                }
+            }
+        })
+
+        socket.on("typing", (user, conversation, status) => {
+            console.log(new Date(), `${status} - ${user} - ${conversation}`)
+            console.log(typing)
+            const key = `${conversation}:${user}`
+            switch (status) {
+                case "started": {
+                    setTyping((x) => new Set(x).add(key))
+                    break
+                }
+                case "stopped": {
+                    setTyping((x) => new Set([...x].filter((y) => y !== key)))
+                    break
+                }
+            }
         })
     }, [user, currentConversation])
 
@@ -274,27 +310,31 @@ export default ({ params }: any) => {
                         <ConversationsContext.Provider value={[conversations, setConversations]}>
                             <CurrentConversationContext.Provider value={[currentConversation, setCurrentConversation]}>
                                 <MessageContext.Provider value={[messages, setMessages]}>
-                                    <>
-                                        <Settings />
-                                        <Toaster />
-                                    </>
-                                    {width >= 768 ? (
-                                        <Page footer={false} className="hidden md:block h-screen w-screen">
-                                            <ResizablePanelGroup orientation="horizontal" className="border">
-                                                <ResizablePanel defaultSize="35%" minSize="20%">
-                                                    <User />
-                                                </ResizablePanel>
-                                                <ResizableHandle withHandle />
-                                                <ResizablePanel defaultSize="65%" minSize="30%">
-                                                    <Chat />
-                                                </ResizablePanel>
-                                            </ResizablePanelGroup>
-                                        </Page>
-                                    ) : (
-                                        <Page footer={false} className="block md:hidden h-screen w-screen">
-                                            {isChat ? <Chat /> : <User />}
-                                        </Page>
-                                    )}
+                                    <OnlineContext.Provider value={[online, setOnline]}>
+                                        <TypingContext.Provider value={[typing, setTyping]}>
+                                            <>
+                                                <Settings />
+                                                <Toaster />
+                                            </>
+                                            {width >= 768 ? (
+                                                <Page footer={false} className="hidden md:block h-screen w-screen">
+                                                    <ResizablePanelGroup orientation="horizontal" className="border">
+                                                        <ResizablePanel defaultSize="35%" minSize="20%">
+                                                            <User />
+                                                        </ResizablePanel>
+                                                        <ResizableHandle withHandle />
+                                                        <ResizablePanel defaultSize="65%" minSize="30%">
+                                                            <Chat />
+                                                        </ResizablePanel>
+                                                    </ResizablePanelGroup>
+                                                </Page>
+                                            ) : (
+                                                <Page footer={false} className="block md:hidden h-screen w-screen">
+                                                    {isChat ? <Chat /> : <User />}
+                                                </Page>
+                                            )}
+                                        </TypingContext.Provider>
+                                    </OnlineContext.Provider>
                                 </MessageContext.Provider>
                             </CurrentConversationContext.Provider>
                         </ConversationsContext.Provider>
@@ -306,12 +346,16 @@ export default ({ params }: any) => {
 }
 
 function Chat() {
-    const [currentConversation, setCurrentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
+    const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const [currentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
     const [conversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
-    const [members] = useContext(MembersContext) ?? [[], () => {}]
     const [messages, setMessages] = useContext(MessageContext) ?? [[], () => {}]
+    const [_, setIsChat] = useContext(ChatContext) ?? [[], () => {}]
+    const [members] = useContext(MembersContext) ?? [[], () => {}]
+    const [online] = useContext(OnlineContext) ?? [[], () => {}]
+    const [typing] = useContext(TypingContext) ?? [[], () => {}]
     const [user] = useContext(UserContext) ?? [null, () => {}]
-    const [isChat, setIsChat] = useContext(ChatContext) ?? [[], () => {}]
+    let isTyping = false
 
     const opponent = members.find((m) => m.id === conversation?.participant)
     const displayName = opponent?.name ?? user?.name ?? "Unknown User"
@@ -336,9 +380,36 @@ function Chat() {
         }
     }
 
-    async function editMessage(id: string, content: string) {}
+    async function editMessage(id: string, content: string) {
+        console.log(content)
+        if (!Value.Check(MessageContent, content)) {
+            const errors = [...Value.Errors(MessageContent, content)]
+            const message = errors.map((e: any) => `${e.path ?? "Form"}: ${e.message}`).join(", ")
+            tx("error", "Validation failed", message)
+            return
+        }
+        const output = await ftc.messages.edit(id, content)
+        if (typeof output === "string") {
+            tx("error", "Editing message failed", output)
+            return
+        } else {
+            setMessages((prev) => prev.map((m) => (m.id === id ? output : m)))
+            tx("success", "Message edited", "Your message has been updated.")
+            return
+        }
+    }
 
-    async function deleteMessage(id: string) {}
+    async function deleteMessage(id: string) {
+        const output = await ftc.messages.delete(id)
+        if (typeof output === "string") {
+            tx("error", "Deleting message failed", output)
+            return
+        } else {
+            setMessages((prev) => prev.filter((m) => m.id !== id))
+            tx("success", "Message deleted", "Your message has been deleted.")
+            return
+        }
+    }
 
     if (!messages.length) {
         return (
@@ -355,12 +426,97 @@ function Chat() {
                     <ArrowLeft className="scale-140" />
                     <span className="sr-only">Back</span>
                 </Button>
-                <Avatar className="scale-140">
-                    {opponent?.avatar && <AvatarImage src={opponent.avatar} alt={displayName} />}
-                    <AvatarFallback>{fallback(displayName)}</AvatarFallback>
-                    {/* <AvatarBadge className="bg-green-600 dark:bg-green-800" /> */}
-                </Avatar>
-                <span className="font-comfortaa tracking-tight">{displayName}</span>
+
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <button className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer">
+                            <Avatar className="scale-130 md:ml-1">
+                                {opponent?.avatar && <AvatarImage src={opponent.avatar} alt={displayName} />}
+                                <AvatarFallback>{fallback(displayName)}</AvatarFallback>
+                                {online.has(opponent?.id ?? "") && (
+                                    <AvatarBadge className="bg-green-600 dark:bg-green-800 ring-0" />
+                                )}
+                            </Avatar>
+                            <span className="font-comfortaa tracking-tight">{displayName}</span>
+                        </button>
+                    </DialogTrigger>
+
+                    <DialogContent className="sm:max-w-sm p-0 overflow-hidden gap-0">
+                        <DialogHeader className="sr-only">
+                            <DialogTitle>User Profile</DialogTitle>
+                        </DialogHeader>
+
+                        {/* Banner */}
+                        <div className="h-18 bg-muted relative border-b border-border">
+                            <div className="absolute -bottom-7 left-5">
+                                <div className="relative">
+                                    <Avatar className="size-14 ring-3 ring-background">
+                                        {opponent?.avatar && <AvatarImage src={opponent.avatar} alt={displayName} />}
+                                        <AvatarFallback className="text-lg">{fallback(displayName)}</AvatarFallback>
+                                    </Avatar>
+                                    {online.has(opponent?.id ?? "") && (
+                                        <span className="absolute bottom-0.5 right-0.5 size-3.5 rounded-full bg-green-500 ring-2 ring-background" />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="pt-10 px-5 pb-5">
+                            <p className="font-comfortaa font-semibold text-base leading-tight">{opponent?.name}</p>
+                            <p className="text-sm text-muted-foreground mb-4">@{opponent?.username}</p>
+
+                            <div className="flex flex-col gap-2 mb-4">
+                                {opponent?.gender && (
+                                    <div className="bg-muted rounded-lg px-3 py-2.5">
+                                        <p className="text-[11px] text-muted-foreground mb-0.5">Gender</p>
+                                        <p className="text-[13px] font-medium capitalize">{opponent.gender}</p>
+                                    </div>
+                                )}
+                                <div className="bg-muted rounded-lg px-3 py-2.5">
+                                    <div className="flex items-center justify-between mb-0.5">
+                                        <p className="text-[11px] text-muted-foreground">User ID</p>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(opponent?.id ?? "")
+                                                tx(
+                                                    "success",
+                                                    "Copied to clipboard",
+                                                    "User ID has been copied to clipboard."
+                                                )
+                                            }}
+                                            className="text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            <Copy className="size-3" />
+                                        </button>
+                                    </div>
+                                    <p className="text-[13px] font-medium font-mono">{opponent?.id}</p>
+                                </div>
+                                <div className="bg-muted rounded-lg px-3 py-2.5">
+                                    <p className="text-[11px] text-muted-foreground mb-0.5">Joined</p>
+                                    <p className="text-[13px] font-medium">
+                                        {new Date(opponent?.createdAt ?? "").toLocaleString("en-US", {
+                                            dateStyle: "medium",
+                                            timeStyle: "short"
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {typing.has(`${currentConversation?.id ?? ""}:${opponent?.id ?? ""}`) && (
+                    <span className="not-sr-only flex items-center gap-0.5">
+                        {[0, 1, 2].map((i) => (
+                            <span
+                                key={i}
+                                className="w-1 h-1 rounded-full bg-muted-foreground animate-bounce"
+                                style={{ animationDelay: `${i * 0.15}s` }}
+                            />
+                        ))}
+                    </span>
+                )}
             </div>
 
             <ScrollArea className="flex-1 min-h-0 w-full px-2 py-0">
@@ -376,34 +532,50 @@ function Chat() {
                 ))}
             </ScrollArea>
 
-            <form action={sendMessage} className="mt-auto bg-muted px-4 py-3">
-                <div className="mx-auto flex w-full items-end gap-2">
-                    <Textarea
-                        id="message"
-                        name="message"
-                        placeholder="Type a message..."
-                        minLength={1}
-                        maxLength={2000}
-                        required
-                        rows={1}
-                        className="min-h-0 resize-none overflow-hidden leading-relaxed pb-2 pt-1"
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault()
-                                e.currentTarget.form?.requestSubmit()
-                            }
-                        }}
-                        onInput={(e) => {
-                            const el = e.currentTarget
-                            el.style.height = "auto"
-                            el.style.height = `${el.scrollHeight}px`
-                        }}
-                    />
-                    <Button type="submit" size="icon" className="shrink-0 mb-0.5">
-                        <Send className="h-4 w-4" />
-                        <span className="sr-only">Send</span>
-                    </Button>
-                </div>
+            <form action={sendMessage} className="mt-auto bg-muted px-4 py-3 mx-auto flex w-full items-end gap-2">
+                <Textarea
+                    id="message"
+                    name="message"
+                    placeholder="Type a message..."
+                    minLength={1}
+                    maxLength={2000}
+                    required
+                    rows={1}
+                    className="min-h-0 resize-none overflow-hidden leading-relaxed pb-2 pt-1"
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault()
+                            e.currentTarget.form?.requestSubmit()
+                        }
+                    }}
+                    onInput={(e) => {
+                        const el = e.currentTarget
+                        el.style.height = "auto"
+                        el.style.height = `${el.scrollHeight}px`
+
+                        if (!isTyping) {
+                            isTyping = true
+                            const socket = getSocket()
+                            socket.emit("typing", currentConversation?.id ?? "", "started")
+                        }
+
+                        if (typingTimeout.current) clearTimeout(typingTimeout.current)
+                        typingTimeout.current = setTimeout(() => {
+                            isTyping = false
+                            const socket = getSocket()
+                            socket.emit("typing", currentConversation?.id ?? "", "stopped")
+                        }, 1500)
+                    }}
+                    onPointerOut={(e) => {
+                        const el = e.currentTarget
+                        el.style.height = "auto"
+                        el.style.height = `${el.scrollHeight}px`
+                    }}
+                />
+                <Button type="submit" size="icon" className="shrink-0 mb-0.5">
+                    <Send className="h-4 w-4" />
+                    <span className="sr-only">Send</span>
+                </Button>
             </form>
         </div>
     )
@@ -422,11 +594,12 @@ function MessageComponent({
     editMessage: (id: string, content: string) => Promise<void>
     deleteMessage: (id: string) => Promise<void>
 }) {
+    const [online] = useContext(OnlineContext) ?? [new Set(), () => {}]
     const [isDetailsDialogOpen, setDetailsDialogOpen] = useState(false)
     const [isEditDialogOpen, setEditDialogOpen] = useState(false)
 
-    const isCurrentUser = message.sender === user?.id
     const sender = members.find((u) => u.id === message.sender)
+    const isCurrentUser = message.sender === user?.id
 
     const urlRegex = /(https?:\/\/[^\s]+)/g
     const parts = message.content.split(urlRegex)
@@ -437,6 +610,7 @@ function MessageComponent({
                 <Avatar className="block scale-115 ml-1 mr-2 shrink-0 self-center">
                     {sender?.avatar && <AvatarImage src={sender.avatar} />}
                     <AvatarFallback className="text-[10px]">{fallback(sender?.name ?? "N/A")}</AvatarFallback>
+                    {online.has(sender?.id ?? "") && <AvatarBadge className="bg-green-600 dark:bg-green-800 ring-0" />}
                 </Avatar>
             )}
 
@@ -530,22 +704,32 @@ function MessageComponent({
                         <form
                             className="flex pt-2"
                             action={(form) => {
-                                editMessage(message.id, Object.fromEntries(form.entries()).message as string)
+                                editMessage(message.id, Object.fromEntries(form.entries()).EditedContent as string)
                                 setEditDialogOpen(false)
                             }}
                         >
                             <FieldGroup>
                                 <Field>
-                                    <FieldLabel htmlFor="content">Message</FieldLabel>
+                                    <FieldLabel htmlFor="EditedContent">Message</FieldLabel>
                                     <Textarea
-                                        id="content"
-                                        name="content"
+                                        id="EditedContent"
+                                        name="EditedContent"
                                         placeholder="Enter your new content"
                                         defaultValue={message.content}
                                         maxLength={2000}
                                         minLength={1}
                                         rows={1}
                                         required
+                                        onPointerEnter={(e) => {
+                                            const el = e.currentTarget
+                                            el.style.height = "auto"
+                                            el.style.height = `${el.scrollHeight}px`
+                                        }}
+                                        onInput={(e) => {
+                                            const el = e.currentTarget
+                                            el.style.height = "auto"
+                                            el.style.height = `${el.scrollHeight}px`
+                                        }}
                                     />
                                 </Field>
                                 <Field orientation="horizontal">
@@ -592,9 +776,10 @@ function MessageComponent({
 }
 
 function User() {
-    const [currentConversation, setCurrentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
-    const [isChat, setIsChat] = useContext(ChatContext) ?? [[], () => {}]
-    const [members, setMembers] = useContext(MembersContext) ?? [[], () => {}]
+    const [_, setCurrentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
+    const [online] = useContext(OnlineContext) ?? [new Set(), () => {}]
+    const [___, setIsChat] = useContext(ChatContext) ?? [[], () => {}]
+    const [members] = useContext(MembersContext) ?? [[], () => {}]
     const [error, setError] = useState<string | null>(null)
 
     async function handleConversationSelect(id: string) {
@@ -614,7 +799,6 @@ function User() {
                     <h1 className="font-comfortaa text-2xl mb-2.5 tracking-tight text-foreground">Chatio</h1>
                     <Dropdown />
                 </div>
-                {/* <Separator className="my-2" /> */}
                 <div className="relative">
                     <Input className="pr-10" placeholder="Search user..." />
                     <Search
@@ -644,7 +828,9 @@ function User() {
                                                   .toUpperCase()
                                             : user.name?.slice(0, 2).toUpperCase()}
                                     </AvatarFallback>
-                                    {/* <AvatarBadge className="bg-green-600 dark:bg-green-800" /> */}
+                                    {online.has(user.id) && (
+                                        <AvatarBadge className="bg-green-600 dark:bg-green-800 ring-0" />
+                                    )}
                                 </Avatar>
                                 <p>{user.name}</p>
                             </Card>
@@ -755,7 +941,7 @@ function Settings() {
             <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-0 max-h-[85dvh] md:max-h-125 md:max-w-175 lg:max-w-200">
                 <DialogTitle className="sr-only">Settings</DialogTitle>
                 <DialogDescription className="sr-only">Customize your settings here.</DialogDescription>
-                <SidebarProvider className="items-start">
+                <SidebarProvider className="items-start min-h-full">
                     <Sidebar collapsible="none" className="hidden md:flex">
                         <SidebarContent>
                             <SidebarGroup>
