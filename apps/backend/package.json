@@ -35,7 +35,7 @@
         "postgres": "^3.4.9",
         "schema": "workspace:*",
         "snowtransfer": "^0.17.5",
-        "typebox": "^1.1.17",
+        "typebox": "^1.1.23",
         "typescript": "^6.0.2",
         "uuid": "^13.0.0"
     },
