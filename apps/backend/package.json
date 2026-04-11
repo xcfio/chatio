@@ -28,7 +28,7 @@
         "@fastify/swagger": "^9.7.0",
         "@fastify/swagger-ui": "^5.2.5",
         "@fastify/type-provider-typebox": "^6.1.0",
-        "discord-api-types": "^0.38.44",
+        "discord-api-types": "^0.38.45",
         "drizzle-orm": "1.0.0-beta.20",
         "fastify": "^5.8.4",
         "fastify-socket.io": "^5.1.0",
