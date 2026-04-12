@@ -1,4 +1,4 @@
-import { ErrorResponse, PublicUser, UUID } from "schema"
+import { ErrorResponse, Nullable, PublicUser, UUID } from "schema"
 import { and, or, ilike, desc, eq } from "drizzle-orm"
 import { toTypeBox, xcf } from "../../function"
 import { db, table } from "../../database"
@@ -12,17 +12,25 @@ export default function GetUsers(fastify: Awaited<ReturnType<typeof main>>) {
         schema: {
             description: "Get list of all users",
             tags: ["Users"],
-            querystring: Type.Object({
-                page: Type.Optional(Type.Integer({ default: 1, minimum: 1 })),
-                limit: Type.Optional(Type.Integer({ maximum: 100, minimum: 1 })),
-                search: Type.Optional(Type.String())
-            }),
-            body: Type.Optional(Type.Array(UUID, { maxItems: 100, minItems: 0 })),
+            querystring: Type.Partial(
+                Type.Object({
+                    page: Type.Integer({ default: 1, minimum: 1 }),
+                    limit: Type.Integer({ maximum: 100, minimum: 1 }),
+                    search: Type.String()
+                })
+            ),
+            body: Nullable(Type.Array(UUID, { maxItems: 100, minItems: 0 })),
             response: {
                 200: Type.Array(PublicUser, { maxItems: 100, minItems: 0 }),
                 401: ErrorResponse(401, "Unauthorized - authentication required"),
                 429: ErrorResponse(429, "Too many requests - rate limit exceeded"),
                 500: ErrorResponse(500, "Internal server error")
+            }
+        },
+        config: {
+            rateLimit: {
+                max: 100,
+                timeWindow: "1 minute"
             }
         },
         preHandler: fastify.auth,
@@ -32,7 +40,7 @@ export default function GetUsers(fastify: Awaited<ReturnType<typeof main>>) {
                 const id = request.body
                 const conditions = []
 
-                if (id) {
+                if (id && id.length) {
                     conditions.push(or(...id.map((x) => eq(table.users.id, x))))
                 }
 

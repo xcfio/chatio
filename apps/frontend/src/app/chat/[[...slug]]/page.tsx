@@ -249,13 +249,15 @@ export default ({ params }: any) => {
 
         socket.on("message_created", (message, conversationId) => {
             if (currentConversation?.id !== conversationId) return
-            if (messages.filter((x) => x.id === message.id).shift()) return
-            setMessages((x) => [...x, message])
+            setMessages((prev) => {
+                if (prev.some((x) => x.id === message.id)) return prev
+                return [...prev, message]
+            })
         })
 
         socket.on("message_edited", (message, conversationId) => {
             if (currentConversation?.id !== conversationId) return
-            setMessages((x) => x.map((y) => (y.id === message.id ? message : y)))
+            setMessages((prev) => prev.map((msg) => (msg.id === message.id ? message : msg)))
         })
 
         socket.on("message_deleted", (messageId, conversationId) => {
@@ -277,8 +279,6 @@ export default ({ params }: any) => {
         })
 
         socket.on("typing", (user, conversation, status) => {
-            console.log(new Date(), `${status} - ${user} - ${conversation}`)
-            console.log(typing)
             const key = `${conversation}:${user}`
             switch (status) {
                 case "started": {
@@ -423,7 +423,7 @@ function Chat() {
         }
     }
 
-    if (!messages.length) {
+    if (!currentConversation) {
         return (
             <div className="flex h-full w-full items-center justify-center">
                 <p className="text-muted-foreground">Select a conversation to start chatting.</p>
@@ -531,18 +531,24 @@ function Chat() {
                 )}
             </div>
 
-            <ScrollArea className="flex-1 min-h-0 w-full px-2 py-0">
-                {messages.flat().map((message) => (
-                    <MessageComponent
-                        key={message.id}
-                        message={message}
-                        members={members}
-                        user={user}
-                        editMessage={editMessage}
-                        deleteMessage={deleteMessage}
-                    />
-                ))}
-            </ScrollArea>
+            {messages.length ? (
+                <ScrollArea className="flex-1 min-h-0 w-full px-2 py-0">
+                    {messages.flat().map((message) => (
+                        <MessageComponent
+                            key={message.id}
+                            message={message}
+                            members={members}
+                            user={user}
+                            editMessage={editMessage}
+                            deleteMessage={deleteMessage}
+                        />
+                    ))}
+                </ScrollArea>
+            ) : (
+                <div className="flex flex-1 min-h-0 w-full items-center justify-center m-auto md:pb-30">
+                    <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
+                </div>
+            )}
 
             <form action={sendMessage} className="mt-auto bg-muted px-4 py-3 mx-auto flex w-full items-end gap-2">
                 <Textarea
@@ -789,16 +795,31 @@ function MessageComponent({
 
 function User() {
     const [_, setCurrentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
+    const [conversations] = useContext(ConversationsContext) ?? [null, () => {}]
     const [online] = useContext(OnlineContext) ?? [new Set(), () => {}]
     const [___, setIsChat] = useContext(ChatContext) ?? [[], () => {}]
     const [members] = useContext(MembersContext) ?? [[], () => {}]
     const [error, setError] = useState<string | null>(null)
     const [isPopoverOpen, setPopoverOpen] = useState(false)
+    const [searchResults, setSearchResults] = useState<Array<Static<typeof PublicUser>>>([])
 
     async function handleConversationSelect(id: string) {
         const res = await ftc.conversations.getOne(id, "user")
         if (typeof res === "string") return setError(res)
+
         setCurrentConversation(res)
+        window.history.replaceState(null, "", `/chat/${res.id}`)
+
+        setIsChat(true)
+    }
+
+    async function createConversation(id: string) {
+        if (conversations?.find((x) => x.participant === id)) return await handleConversationSelect(id)
+        const res = await ftc.conversations.create(id)
+
+        if (typeof res === "string") return tx("error", "Creating conversation failed", res)
+        setCurrentConversation(res)
+
         window.history.replaceState(null, "", `/chat/${res.id}`)
         setIsChat(true)
     }
@@ -819,55 +840,95 @@ function User() {
                             <Input
                                 className="pr-10"
                                 placeholder="Search user..."
-                                onInput={(event) => {
+                                onInput={async (event) => {
                                     event.preventDefault()
-                                    setPopoverOpen(!!event.currentTarget.value)
+                                    const value = event.currentTarget.value
+
+                                    const user = await ftc.user.getAll({ search: value })
+                                    if (typeof user === "string") return tx("error", user)
+
+                                    setPopoverOpen(!!value)
+                                    setSearchResults(user)
                                 }}
                             />
                         </PopoverAnchor>
-                        <Search
-                            role="button"
-                            className="absolute scale-80 right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground/50"
-                        />
+                        <Search className="absolute scale-80 right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground/50" />
                     </div>
 
-                    <PopoverContent align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
-                        <PopoverHeader>
-                            <PopoverTitle>Search Results</PopoverTitle>
-                            <PopoverDescription>Matching users will appear here.</PopoverDescription>
-                        </PopoverHeader>
+                    <PopoverContent
+                        align="start"
+                        className="p-1.5 w-64 shadow-lg bg-background"
+                        onOpenAutoFocus={(e) => e.preventDefault()}
+                    >
+                        <p className="sr-only">Matching users will appear here.</p>
+                        <ScrollArea className="p-1">
+                            {searchResults.length > 0 ? (
+                                searchResults.map((user, index) => {
+                                    return (
+                                        <Card
+                                            key={user.id}
+                                            role="button"
+                                            className={`flex flex-row items-center bg-card gap-2 py-1 px-1.5 rounded-full hover:bg-card/50 cursor-pointer ${index === 0 ? "" : "mt-2.5"}`}
+                                            onClick={() => createConversation(user.id)}
+                                        >
+                                            <Avatar>
+                                                {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
+                                                <AvatarFallback>
+                                                    {user.name.includes(" ")
+                                                        ? user.name
+                                                              .split(" ")
+                                                              .map((w) => w[0])
+                                                              .join("")
+                                                              .slice(0, 2)
+                                                              .toUpperCase()
+                                                        : user.name?.slice(0, 2).toUpperCase()}
+                                                </AvatarFallback>
+                                                {online.has(user.id) && (
+                                                    <AvatarBadge className="bg-green-600 dark:bg-green-800 ring-0" />
+                                                )}
+                                            </Avatar>
+                                            <p>{user.name}</p>
+                                        </Card>
+                                    )
+                                })
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-6 gap-1.5 text-center">
+                                    <Search className="h-4 w-4 text-muted-foreground/40" />
+                                    <p className="text-xs text-muted-foreground">No users found</p>
+                                </div>
+                            )}
+                        </ScrollArea>
                     </PopoverContent>
                 </Popover>
             </div>
             {members.length ? (
                 <ScrollArea>
-                    {members.map((user, index) => {
+                    {members.map((user) => {
                         return (
-                            <div key={index}>
-                                <Card
-                                    role="button"
-                                    className="flex flex-row items-center gap-2 p-2 m-2 hover:bg-card/50 cursor-pointer"
-                                    onClick={() => handleConversationSelect(user.id)}
-                                >
-                                    <Avatar>
-                                        {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
-                                        <AvatarFallback>
-                                            {user.name.includes(" ")
-                                                ? user.name
-                                                      .split(" ")
-                                                      .map((w) => w[0])
-                                                      .join("")
-                                                      .slice(0, 2)
-                                                      .toUpperCase()
-                                                : user.name?.slice(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                        {online.has(user.id) && (
-                                            <AvatarBadge className="bg-green-600 dark:bg-green-800 ring-0" />
-                                        )}
-                                    </Avatar>
-                                    <p>{user.name}</p>
-                                </Card>
-                            </div>
+                            <Card
+                                key={user.id}
+                                role="button"
+                                className="flex flex-row items-center gap-2 p-2 m-2 hover:bg-card/50 cursor-pointer"
+                                onClick={() => handleConversationSelect(user.id)}
+                            >
+                                <Avatar>
+                                    {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
+                                    <AvatarFallback>
+                                        {user.name.includes(" ")
+                                            ? user.name
+                                                  .split(" ")
+                                                  .map((w) => w[0])
+                                                  .join("")
+                                                  .slice(0, 2)
+                                                  .toUpperCase()
+                                            : user.name?.slice(0, 2).toUpperCase()}
+                                    </AvatarFallback>
+                                    {online.has(user.id) && (
+                                        <AvatarBadge className="bg-green-600 dark:bg-green-800 ring-0" />
+                                    )}
+                                </Avatar>
+                                <p>{user.name}</p>
+                            </Card>
                         )
                     })}
                 </ScrollArea>

@@ -266,7 +266,7 @@ export const ftc = {
                 }
 
                 const data = await api
-                    .post(`users`, { searchParams, json: options.id ?? null })
+                    .post(`users`, { searchParams, json: options.id ? options.id : null })
                     .json<Array<Static<typeof PublicUser>>>()
                 return isError(data) ? data.message : data
             } catch (error) {
