@@ -8,7 +8,8 @@
         "dev": "turbo run dev",
         "lint": "turbo run lint",
         "fmt": "prettier --config=.prettierrc --write .",
-        "test": "turbo run test"
+        "test": "turbo run test",
+        "clean": "powershell -Command \"Get-ChildItem -Path . -Filter node_modules -Recurse -Directory | Remove-Item -Recurse -Force\""
     },
     "repository": {
         "type": "git",
@@ -19,8 +20,8 @@
         "email": "xcfio@proton.me"
     },
     "devDependencies": {
-        "prettier": "^3.8.1",
-        "turbo": "^2.9.5",
+        "prettier": "^3.8.2",
+        "turbo": "^2.9.6",
         "typescript": "6.0.2"
     },
     "packageManager": "pnpm@10.33.0",
