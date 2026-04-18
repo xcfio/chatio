@@ -43,13 +43,13 @@ importers:
         version: 5.2.5
       '@fastify/type-provider-typebox':
         specifier: ^6.1.0
-        version: 6.1.0(typebox@1.1.23)
+        version: 6.1.0(typebox@1.1.27)
       discord-api-types:
         specifier: ^0.38.46
         version: 0.38.46
       drizzle-orm:
         specifier: 1.0.0-beta.21
-        version: 1.0.0-beta.21(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.9)(typebox@1.1.23)(zod@4.3.6)
+        version: 1.0.0-beta.21(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.9)(typebox@1.1.27)(zod@4.3.6)
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
@@ -66,8 +66,8 @@ importers:
         specifier: ^0.17.5
         version: 0.17.5
       typebox:
-        specifier: ^1.1.23
-        version: 1.1.23
+        specifier: ^1.1.27
+        version: 1.1.27
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -130,8 +130,8 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
       typebox:
-        specifier: ^1.1.23
-        version: 1.1.23
+        specifier: ^1.1.27
+        version: 1.1.27
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.2.2
@@ -156,7 +156,7 @@ importers:
     dependencies:
       drizzle-orm:
         specifier: 1.0.0-beta.21
-        version: 1.0.0-beta.21(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.9)(typebox@1.1.23)(zod@4.3.6)
+        version: 1.0.0-beta.21(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.9)(typebox@1.1.27)(zod@4.3.6)
       postgres:
         specifier: ^3.4.9
         version: 3.4.9
@@ -164,8 +164,8 @@ importers:
         specifier: ^4.8.3
         version: 4.8.3
       typebox:
-        specifier: ^1.1.23
-        version: 1.1.23
+        specifier: ^1.1.27
+        version: 1.1.27
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -3574,8 +3574,8 @@ packages:
     resolution: {integrity: sha512-OZs6gsjF4vMp32qrCbiVSkrFmXtG/AZhY3t0iAMrMBiAZyV9oALtXO8hsrHbMXF9x6L3grlFuwW2oAz7cav+Gw==}
     engines: {node: '>= 0.6'}
 
-  typebox@1.1.23:
-    resolution: {integrity: sha512-LOGT/+DLfGsFzAVoYAYzLWT3iV5LfAHebW1pg336lwZg5fkaL3uBKqNXsA7aGb9rkOsVu9QohSkImHwwfHDC0A==}
+  typebox@1.1.27:
+    resolution: {integrity: sha512-0G7OIrG890WbiRwExAgfvM/1uKVP4HcjGxEprJ+WrCXIH0nnTASB2zKO59cx4RMUm4r2SuZfDpX+ZLcATt2ehA==}
 
   typescript@6.0.3:
     resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
@@ -4266,9 +4266,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@fastify/type-provider-typebox@6.1.0(typebox@1.1.23)':
+  '@fastify/type-provider-typebox@6.1.0(typebox@1.1.27)':
     dependencies:
-      typebox: 1.1.23
+      typebox: 1.1.27
 
   '@floating-ui/core@1.7.4':
     dependencies:
@@ -5678,13 +5678,13 @@ snapshots:
       get-tsconfig: 4.13.6
       jiti: 2.6.1
 
-  drizzle-orm@1.0.0-beta.21(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.9)(typebox@1.1.23)(zod@4.3.6):
+  drizzle-orm@1.0.0-beta.21(@types/mssql@9.1.9(@azure/core-client@1.10.1))(mssql@11.0.1(@azure/core-client@1.10.1))(postgres@3.4.9)(typebox@1.1.27)(zod@4.3.6):
     dependencies:
       '@types/mssql': 9.1.9(@azure/core-client@1.10.1)
       mssql: 11.0.1(@azure/core-client@1.10.1)
     optionalDependencies:
       postgres: 3.4.9
-      typebox: 1.1.23
+      typebox: 1.1.27
       zod: 4.3.6
 
   dunder-proto@1.0.1:
@@ -7206,7 +7206,7 @@ snapshots:
       media-typer: 1.1.0
       mime-types: 3.0.2
 
-  typebox@1.1.23: {}
+  typebox@1.1.27: {}
 
   typescript@6.0.3: {}
 
