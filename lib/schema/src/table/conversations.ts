@@ -8,10 +8,7 @@ export const conversations = pgTable("conversations", {
         .unique()
         .primaryKey()
         .$defaultFn(() => v7()),
-    users: uuid("users")
-        .array()
-        .notNull()
-        .references(() => users.id, { onDelete: "cascade" }),
+    users: uuid("users").array().notNull(),
     createdAt: timestamp("created_at", { withTimezone: false })
         .notNull()
         .$defaultFn(() => new Date()),
