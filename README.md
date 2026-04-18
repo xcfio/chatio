@@ -4,7 +4,7 @@ A full-stack, real-time chat application featuring a modern Next.js frontend, a 
 
 ## Live Demo
 
-- **Frontend Application**: [https://chatio-xcfio.vercel.app/](https://chatio-xcfio.vercel.app/)
+- **Frontend Application**: [https://chatio-xcfio.vercel.app](https://chatio-xcfio.vercel.app)
 - **Backend API & Documentation**: [https://api-xcfio.onrender.com](https://api-xcfio.onrender.com)
 
 ## Requirements
