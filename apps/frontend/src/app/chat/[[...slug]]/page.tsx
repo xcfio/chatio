@@ -358,6 +358,7 @@ export default ({ params }: any) => {
 }
 
 function Chat() {
+    const bottomRef = useRef<HTMLDivElement>(null)
     const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
     const [currentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
     const [conversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
@@ -371,6 +372,10 @@ function Chat() {
 
     const opponent = members.find((m) => m.id === conversation?.participant)
     const displayName = opponent?.name ?? user?.name ?? "Unknown User"
+
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    }, [messages])
 
     async function sendMessage(form: FormData) {
         const content = Object.fromEntries(form.entries()).message
@@ -543,6 +548,7 @@ function Chat() {
                             deleteMessage={deleteMessage}
                         />
                     ))}
+                    <div ref={bottomRef} />
                 </ScrollArea>
             ) : (
                 <div className="flex flex-1 min-h-0 w-full items-center justify-center m-auto md:pb-30">
@@ -559,7 +565,7 @@ function Chat() {
                     maxLength={2000}
                     required
                     rows={1}
-                    className="min-h-0 resize-none overflow-hidden leading-relaxed pb-2 pt-1"
+                    className="min-h-0 max-h-60 resize-none overflow-y-auto leading-relaxed pb-2 pt-1"
                     onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault()
@@ -569,7 +575,7 @@ function Chat() {
                     onInput={(e) => {
                         const el = e.currentTarget
                         el.style.height = "auto"
-                        el.style.height = `${el.scrollHeight}px`
+                        el.style.height = `${el.scrollHeight + 2}px`
 
                         if (!isTyping) {
                             isTyping = true
@@ -587,7 +593,7 @@ function Chat() {
                     onPointerOut={(e) => {
                         const el = e.currentTarget
                         el.style.height = "auto"
-                        el.style.height = `${el.scrollHeight}px`
+                        el.style.height = `${el.scrollHeight + 2}px`
                     }}
                 />
                 <Button type="submit" size="icon" className="shrink-0 mb-0.5">
@@ -645,7 +651,7 @@ function MessageComponent({
                                         : "rounded-bl-sm bg-muted text-foreground"
                                 )}
                             >
-                                <p className="whitespace-pre-wrap wrap-break-word">
+                                <p className="whitespace-pre-wrap wrap-break-word break-all">
                                     {parts.map((part, i) =>
                                         urlRegex.test(part) ? (
                                             <a
@@ -738,15 +744,16 @@ function MessageComponent({
                                         minLength={1}
                                         rows={1}
                                         required
+                                        className="min-h-0 max-h-60 resize-none overflow-y-auto leading-relaxed pb-2 pt-1"
                                         onPointerEnter={(e) => {
                                             const el = e.currentTarget
                                             el.style.height = "auto"
-                                            el.style.height = `${el.scrollHeight}px`
+                                            el.style.height = `${el.scrollHeight + 2}px`
                                         }}
                                         onInput={(e) => {
                                             const el = e.currentTarget
                                             el.style.height = "auto"
-                                            el.style.height = `${el.scrollHeight}px`
+                                            el.style.height = `${el.scrollHeight + 2}px`
                                         }}
                                     />
                                 </Field>
