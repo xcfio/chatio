@@ -21,9 +21,11 @@ export default function Logout(fastify: Awaited<ReturnType<typeof main>>) {
         handler: async (_, reply) => {
             try {
                 reply.clearCookie("auth", {
-                    path: "/",
                     signed: true,
-                    sameSite: "strict"
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "none",
+                    path: "/"
                 })
 
                 return reply.send({
