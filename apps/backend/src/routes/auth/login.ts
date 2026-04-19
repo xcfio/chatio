@@ -2,7 +2,7 @@ import { AuthenticatedUser, ErrorResponse, LoginUser, Payload } from "schema"
 import { CreateError, HmacPassword, toTypeBox, xcf } from "../../function"
 import { timingSafeEqual } from "node:crypto"
 import { db, table } from "../../database"
-import { eq, or } from "drizzle-orm"
+import { ilike, or } from "drizzle-orm"
 import { main } from "../../"
 
 export default function Login(fastify: Awaited<ReturnType<typeof main>>) {
@@ -28,7 +28,7 @@ export default function Login(fastify: Awaited<ReturnType<typeof main>>) {
                 const [user] = await db
                     .select()
                     .from(table.users)
-                    .where(or(eq(table.users.email, input), eq(table.users.username, input)))
+                    .where(or(ilike(table.users.email, input), ilike(table.users.username, input)))
 
                 if (!user) {
                     throw CreateError(404, "USER_NOT_FOUND", "User not found")
@@ -47,11 +47,8 @@ export default function Login(fastify: Awaited<ReturnType<typeof main>>) {
                 }
 
                 const exp = 86400 // 24 * 60 * 60
-                const payload: Payload = {
-                    id: user.id,
-                    iat: Math.floor(Date.now() / 1000),
-                    exp: Math.floor(Date.now() / 1000) + exp
-                }
+                const now = Math.floor(Date.now() / 1000)
+                const payload: Payload = { id: user.id, iat: now, exp: now + exp }
 
                 const jwt = fastify.jwt.sign(payload)
                 reply.setCookie("auth", jwt, {

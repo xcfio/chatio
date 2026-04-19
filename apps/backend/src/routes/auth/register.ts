@@ -1,7 +1,7 @@
 import { AuthenticatedUser, ErrorResponse, Payload, RegisterUser } from "schema"
 import { CreateError, HmacPassword, toTypeBox, xcf } from "../../function"
 import { db, table } from "../../database"
-import { eq, or } from "drizzle-orm"
+import { ilike, or } from "drizzle-orm"
 import { main } from "../../"
 
 export default function Register(fastify: Awaited<ReturnType<typeof main>>) {
@@ -26,13 +26,13 @@ export default function Register(fastify: Awaited<ReturnType<typeof main>>) {
                 const [exist] = await db
                     .select({ email: table.users.email, username: table.users.username })
                     .from(table.users)
-                    .where(or(eq(table.users.email, email), eq(table.users.username, username)))
+                    .where(or(ilike(table.users.email, email), ilike(table.users.username, username)))
 
                 if (exist) {
-                    if (exist.email === email) {
+                    if (exist.email.toLowerCase() === email.toLowerCase()) {
                         throw CreateError(409, "EMAIL_ALREADY_EXISTS", "This email is already registered")
                     }
-                    if (exist.username === username) {
+                    if (exist.username.toLowerCase() === username.toLowerCase()) {
                         throw CreateError(409, "USERNAME_ALREADY_EXISTS", "This username is already taken")
                     }
                 }
@@ -47,11 +47,8 @@ export default function Register(fastify: Awaited<ReturnType<typeof main>>) {
                 }
 
                 const exp = 86400 // 24 * 60 * 60
-                const payload: Payload = {
-                    id: user.id,
-                    iat: Math.floor(Date.now() / 1000),
-                    exp: Math.floor(Date.now() / 1000) + exp
-                }
+                const now = Math.floor(Date.now() / 1000)
+                const payload: Payload = { id: user.id, iat: now, exp: now + exp }
 
                 const jwt = fastify.jwt.sign(payload)
                 reply.setCookie("auth", jwt, {

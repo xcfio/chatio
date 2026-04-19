@@ -26,8 +26,9 @@ export async function main() {
     Routes(fastify)
     Hooks(fastify)
 
-    await fastify.listen({ host: "0.0.0.0", port: 7200 })
-    console.log(`Server listening at http://localhost:7200`)
+    const port = Number(process.env.PORT ?? 7200)
+    await fastify.listen({ host: "0.0.0.0", port: port })
+    console.log(`Server listening at http://localhost:${port}`)
 
     // @ts-ignore
     fastify.io.on("connection", Socket(fastify))
