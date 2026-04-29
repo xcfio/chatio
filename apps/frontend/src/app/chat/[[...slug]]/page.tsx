@@ -25,7 +25,6 @@ import { cn } from "@/lib/utils"
 import { Static } from "typebox"
 import { toast } from "sonner"
 import Value from "typebox/value"
-
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -353,7 +352,6 @@ export default ({ params }: any) => {
 function Chat() {
     const bottomRef = useRef<HTMLDivElement>(null)
     const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const [currentConversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
     const [conversation] = useContext(CurrentConversationContext) ?? [null, () => {}]
     const [messages, setMessages] = useContext(MessageContext) ?? [[], () => {}]
     const [_, setIsChat] = useContext(ChatContext) ?? [[], () => {}]
@@ -380,7 +378,7 @@ function Chat() {
             return
         }
 
-        const output = await ftc.messages.send(currentConversation?.id ?? "", content)
+        const output = await ftc.messages.send(conversation?.id ?? "", content)
         if (typeof output === "string") {
             tx("error", "Sending message failed", output)
             return
@@ -421,7 +419,7 @@ function Chat() {
         }
     }
 
-    if (!currentConversation) {
+    if (!conversation) {
         return (
             <div className="flex h-full w-full items-center justify-center">
                 <p className="text-muted-foreground">Select a conversation to start chatting.</p>
@@ -516,7 +514,7 @@ function Chat() {
                     </DialogContent>
                 </Dialog>
 
-                {typing.has(`${currentConversation?.id ?? ""}:${opponent?.id ?? ""}`) && (
+                {typing.has(`${conversation?.id ?? ""}:${opponent?.id ?? ""}`) && (
                     <span className="not-sr-only flex items-center gap-0.5">
                         {[0, 1, 2].map((i) => (
                             <span
@@ -573,14 +571,14 @@ function Chat() {
                         if (!isTyping) {
                             isTyping = true
                             const socket = getSocket()
-                            socket.emit("typing", currentConversation?.id ?? "", "started")
+                            socket.emit("typing", conversation?.id ?? "", "started")
                         }
 
                         if (typingTimeout.current) clearTimeout(typingTimeout.current)
                         typingTimeout.current = setTimeout(() => {
                             isTyping = false
                             const socket = getSocket()
-                            socket.emit("typing", currentConversation?.id ?? "", "stopped")
+                            socket.emit("typing", conversation?.id ?? "", "stopped")
                         }, 1500)
                     }}
                     onPointerOut={(e) => {
