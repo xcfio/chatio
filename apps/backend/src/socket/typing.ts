@@ -1,5 +1,5 @@
 import { and, arrayContains, eq } from "drizzle-orm"
-import { AuthenticatedSocket } from "schema"
+import { AuthenticatedSocket } from "@repo/schema"
 import { db, table } from "../database"
 
 export default async function TypingStatusChanged(socket: Required<AuthenticatedSocket>) {

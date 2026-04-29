@@ -1,6 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox"
 import { ValidationErrorHandler, xcf } from "./function"
-import { AuthenticatedSocket } from "schema"
+import { AuthenticatedSocket } from "@repo/schema"
 import Decorate from "./decorate"
 import Routes from "./routes"
 import Plugin from "./plugin"

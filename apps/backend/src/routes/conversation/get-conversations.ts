@@ -1,5 +1,5 @@
 import { CreateError, toTypeBox, xcf } from "../../function"
-import { Conversation, ErrorResponse } from "schema"
+import { Conversation, ErrorResponse } from "@repo/schema"
 import { desc, arrayContains } from "drizzle-orm"
 import { db, table } from "../../database"
 import { Type } from "typebox"

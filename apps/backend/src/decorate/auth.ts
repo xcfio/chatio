@@ -1,6 +1,6 @@
 import { CreateError, isFastifyError } from "../function"
 import { FastifyRequest, FastifyReply } from "fastify"
-import { Payload } from "schema"
+import { Payload } from "@repo/schema"
 import { main } from "../"
 import Value from "typebox/value"
 import { AssertionError } from "assert"

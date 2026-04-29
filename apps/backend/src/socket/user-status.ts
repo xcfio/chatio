@@ -1,4 +1,4 @@
-import { AuthenticatedSocket } from "schema"
+import { AuthenticatedSocket } from "@repo/schema"
 import { arrayContains } from "drizzle-orm"
 import { db, table } from "../database"
 

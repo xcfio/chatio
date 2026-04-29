@@ -13,7 +13,7 @@ import {
     UserInsert,
     UserSelect,
     UserUpdate
-} from "schema"
+} from "@repo/schema"
 
 export const db = drizzle({ client: postgres(process.env.DATABASE_URI) })
 

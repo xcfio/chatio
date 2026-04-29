@@ -1,4 +1,4 @@
-import { AuthenticatedSocket, Payload } from "schema"
+import { AuthenticatedSocket, Payload } from "@repo/schema"
 
 declare global {
     namespace NodeJS {

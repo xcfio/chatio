@@ -1,4 +1,4 @@
-import { AuthenticatedUser, ErrorResponse, Payload, RegisterUser } from "schema"
+import { AuthenticatedUser, ErrorResponse, Payload, RegisterUser } from "@repo/schema"
 import { CreateError, HmacPassword, toTypeBox, xcf } from "../../function"
 import { db, table } from "../../database"
 import { ilike, or } from "drizzle-orm"

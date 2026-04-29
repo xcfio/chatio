@@ -9,15 +9,16 @@
         "url": "https://github.com/xcfio/template"
     },
     "scripts": {
+        "build": "rolldown -c",
         "db": "drizzle-kit studio --port=4000",
-        "gen": "drizzle-kit generate",
         "dev": "tsx watch --include src/**/* --no-warnings --env-file-if-exists=.env src/index.ts",
-        "start": "tsx --env-file-if-exists=.env src/index.ts",
-        "test": "tsc --noEmit",
+        "docker:build": "docker build --tag api .",
+        "docker:start": "docker run --detach --rm --publish 7200:7200 api",
         "fmt": "prettier --config=.prettierrc --write src",
         "fmt:test": "prettier --config=.prettierrc --check src",
-        "docker:build": "docker build --tag api .",
-        "docker:start": "docker run --detach --rm --publish 7200:7200 api"
+        "gen": "drizzle-kit generate",
+        "start": "tsx --env-file-if-exists=.env src/index.ts",
+        "test": "tsc --noEmit"
     },
     "dependencies": {
         "@fastify/cookie": "^11.0.2",
@@ -33,7 +34,7 @@
         "fastify": "^5.8.5",
         "fastify-socket.io": "^5.1.0",
         "postgres": "^3.4.9",
-        "schema": "workspace:*",
+        "@repo/schema": "workspace:*",
         "snowtransfer": "^0.17.5",
         "typebox": "^1.1.27",
         "typescript": "^6.0.3",
@@ -41,6 +42,6 @@
     },
     "devDependencies": {
         "@types/node": "^25.6.0",
-        "esbuild": "^0.28.0"
+        "rolldown": "1.0.0-rc.17"
     }
 }

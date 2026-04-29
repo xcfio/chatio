@@ -1,6 +1,6 @@
 import { and, arrayContains, eq } from "drizzle-orm"
 import { CreateError, xcf } from "../../function"
-import { ErrorResponse, UUID } from "schema"
+import { ErrorResponse, UUID } from "@repo/schema"
 import { db, table } from "../../database"
 import { Type } from "typebox"
 import { main } from "../../"

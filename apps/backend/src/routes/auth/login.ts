@@ -1,4 +1,4 @@
-import { AuthenticatedUser, ErrorResponse, LoginUser, Payload } from "schema"
+import { AuthenticatedUser, ErrorResponse, LoginUser, Payload } from "@repo/schema"
 import { CreateError, HmacPassword, toTypeBox, xcf } from "../../function"
 import { timingSafeEqual } from "node:crypto"
 import { db, table } from "../../database"

@@ -1,5 +1,5 @@
 import { CreateError, toTypeBox, xcf } from "../../function"
-import { AuthenticatedUser, ChangeUserInfo, ErrorResponse } from "schema"
+import { AuthenticatedUser, ChangeUserInfo, ErrorResponse } from "@repo/schema"
 import { db, table } from "../../database"
 import { eq } from "drizzle-orm"
 import { main } from "../../"

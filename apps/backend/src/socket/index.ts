@@ -1,4 +1,4 @@
-import { AuthenticatedSocket, Payload } from "schema"
+import { AuthenticatedSocket, Payload } from "@repo/schema"
 import { and, eq, isNull } from "drizzle-orm"
 import UserStatusChanged from "./user-status"
 import TypingStatusChanged from "./typing"

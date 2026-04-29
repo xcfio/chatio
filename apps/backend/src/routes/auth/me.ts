@@ -1,4 +1,4 @@
-import { AuthenticatedUser, ErrorResponse } from "schema"
+import { AuthenticatedUser, ErrorResponse } from "@repo/schema"
 import { CreateError, toTypeBox, xcf } from "../../function"
 import { db, table } from "../../database"
 import { and, eq, isNull } from "drizzle-orm"

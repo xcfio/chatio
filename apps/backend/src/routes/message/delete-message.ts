@@ -1,5 +1,5 @@
 import { CreateError, xcf } from "../../function"
-import { ErrorResponse, UUID } from "schema"
+import { ErrorResponse, UUID } from "@repo/schema"
 import { db, table } from "../../database"
 import { eq, and } from "drizzle-orm"
 import { Type } from "typebox"

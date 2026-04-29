@@ -12,7 +12,7 @@ import { Catch } from "@/lib/catch"
 import { ftc } from "@/lib/fetch"
 
 import { AlertCircleIcon, CheckCircle2Icon, Eye, EyeOff } from "lucide-react"
-import { AuthenticatedUser, LoginUser, RegisterUser } from "schema"
+import { AuthenticatedUser, LoginUser, RegisterUser } from "@repo/schema"
 import { InputEvent, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Value } from "typebox/value"

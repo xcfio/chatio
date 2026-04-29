@@ -1,6 +1,6 @@
 "use client"
 
-import { ClientToServerEvents, ServerToClientEvents } from "schema"
+import { ClientToServerEvents, ServerToClientEvents } from "@repo/schema"
 import { io, Socket } from "socket.io-client"
 
 let socket: Socket<ServerToClientEvents, ClientToServerEvents>

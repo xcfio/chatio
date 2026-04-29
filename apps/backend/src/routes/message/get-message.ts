@@ -1,6 +1,6 @@
 import { eq, and, asc, lt, not, arrayContains, gt } from "drizzle-orm"
 import { CreateError, toTypeBox, xcf } from "../../function"
-import { ErrorResponse, Message, UUID } from "schema"
+import { ErrorResponse, Message, UUID } from "@repo/schema"
 import { db, table } from "../../database"
 import { Type } from "typebox"
 import { main } from "../../"

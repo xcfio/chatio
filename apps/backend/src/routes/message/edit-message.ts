@@ -1,4 +1,4 @@
-import { Message, UUID, ErrorResponse, MessageContent } from "schema"
+import { Message, UUID, ErrorResponse, MessageContent } from "@repo/schema"
 import { CreateError, toTypeBox, xcf } from "../../function"
 import { db, table } from "../../database"
 import { eq, and } from "drizzle-orm"

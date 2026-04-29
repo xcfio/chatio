@@ -1,5 +1,5 @@
 import { CreateError, toTypeBox, xcf } from "../../function"
-import { ErrorResponse, PublicUser, UUID } from "schema"
+import { ErrorResponse, PublicUser, UUID } from "@repo/schema"
 import { db, table } from "../../database"
 import { Type } from "typebox"
 import { eq } from "drizzle-orm"

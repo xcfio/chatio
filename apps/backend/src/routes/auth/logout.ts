@@ -1,5 +1,5 @@
 import { CreateError, isFastifyError, xcf } from "../../function"
-import { ErrorResponse } from "schema"
+import { ErrorResponse } from "@repo/schema"
 import { Type } from "typebox"
 import { main } from "../../"
 

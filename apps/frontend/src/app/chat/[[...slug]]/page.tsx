@@ -1,85 +1,47 @@
 "use client"
 
-import {
-    ComponentType,
-    createContext,
-    Dispatch,
-    InputEvent,
-    SetStateAction,
-    SVGProps,
-    SyntheticEvent,
-    use,
-    useContext,
-    useEffect,
-    useRef,
-    useState
-} from "react"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { HoverCardTrigger, HoverCardContent, HoverCard } from "@/components/ui/hover-card"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-    AuthenticatedUser,
-    ChangeUserEmail,
-    ChangeUserInfo,
-    ChangeUserPassword,
-    Conversation,
-    Message,
-    MessageContent,
-    PublicUser
-} from "schema"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import {
-    AlertCircleIcon,
-    ArrowLeft,
-    Copy,
-    CopyIcon,
-    Eye,
-    EyeOff,
-    HelpCircle,
-    Home,
-    Info,
-    LoaderCircle,
-    LogOut,
-    MessageCircle,
-    Monitor,
-    MoonIcon,
-    Palette,
-    PencilIcon,
-    Search,
-    Send,
-    SettingsIcon,
-    Star,
-    SunIcon,
-    TrashIcon,
-    UserCircle
-} from "lucide-react"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Textarea } from "@/components/ui/textarea"
+import { Github } from "@/components/icon/github"
+import { Toaster } from "@/components/ui/sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Link } from "@/components/ui/link"
+import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Page } from "@/components/page"
+import { getSocket } from "@/lib/socket"
+import { useTheme } from "next-themes"
 import { ftc } from "@/lib/fetch"
 import { cn } from "@/lib/utils"
 import { Static } from "typebox"
+import { toast } from "sonner"
 import Value from "typebox/value"
+
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuPortal,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
-    DropdownMenuSeparator,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import { useTheme } from "next-themes"
-import { useRouter } from "next/navigation"
-import { Github } from "@/components/icon/github"
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator
+} from "@/components/ui/breadcrumb"
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuGroup,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger
+} from "@/components/ui/context-menu"
 import {
     Dialog,
     DialogContent,
@@ -99,37 +61,68 @@ import {
     SidebarProvider
 } from "@/components/ui/sidebar"
 import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator
-} from "@/components/ui/breadcrumb"
-import { Toaster } from "@/components/ui/sonner"
-import { toast } from "sonner"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
-import { Link } from "@/components/ui/link"
+    AuthenticatedUser,
+    ChangeUserEmail,
+    ChangeUserInfo,
+    ChangeUserPassword,
+    Conversation,
+    Message,
+    MessageContent,
+    PublicUser
+} from "@repo/schema"
 import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuGroup,
-    ContextMenuItem,
-    ContextMenuSeparator,
-    ContextMenuTrigger
-} from "@/components/ui/context-menu"
-import { Textarea } from "@/components/ui/textarea"
-import { getSocket } from "@/lib/socket"
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
 import {
-    Popover,
-    PopoverAnchor,
-    PopoverContent,
-    PopoverDescription,
-    PopoverHeader,
-    PopoverTitle
-} from "@/components/ui/popover"
+    ComponentType,
+    createContext,
+    Dispatch,
+    InputEvent,
+    SetStateAction,
+    SVGProps,
+    SyntheticEvent,
+    use,
+    useContext,
+    useEffect,
+    useRef,
+    useState
+} from "react"
+import {
+    AlertCircle,
+    ArrowLeft,
+    Copy,
+    Eye,
+    EyeOff,
+    HelpCircle,
+    Home,
+    Info,
+    LoaderCircle,
+    LogOut,
+    MessageCircle,
+    Monitor,
+    Moon,
+    Palette,
+    Pencil,
+    Search,
+    Send,
+    SettingsIcon,
+    Star,
+    Sun,
+    Trash,
+    UserCircle
+} from "lucide-react"
 
 export const ChatContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
 export const DialogContext = createContext<[boolean, Dispatch<SetStateAction<boolean>>]>([false, () => {}])
@@ -693,11 +686,11 @@ function MessageComponent({
                 <ContextMenuContent className="w-44">
                     <ContextMenuGroup>
                         <ContextMenuItem className="gap-2">
-                            <CopyIcon className="h-3.5 w-3.5" /> Copy
+                            <Copy className="h-3.5 w-3.5" /> Copy
                         </ContextMenuItem>
                         {isCurrentUser && (
                             <ContextMenuItem className="gap-2" onClick={() => setEditDialogOpen(true)}>
-                                <PencilIcon className="h-3.5 w-3.5" />
+                                <Pencil className="h-3.5 w-3.5" />
                                 Edit
                             </ContextMenuItem>
                         )}
@@ -710,7 +703,7 @@ function MessageComponent({
                                 className="gap-2"
                                 onClick={() => deleteMessage(message.id)}
                             >
-                                <TrashIcon className="h-3.5 w-3.5" /> Delete
+                                <Trash className="h-3.5 w-3.5" /> Delete
                             </ContextMenuItem>
                         </>
                     )}
@@ -988,11 +981,11 @@ function Dropdown() {
                                     <DropdownMenuLabel>Appearance</DropdownMenuLabel>
                                     <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
                                         <DropdownMenuRadioItem value="light">
-                                            <SunIcon />
+                                            <Sun />
                                             Light
                                         </DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="dark">
-                                            <MoonIcon />
+                                            <Moon />
                                             Dark
                                         </DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="system">
@@ -1588,7 +1581,7 @@ function Error({ error }: { error: string }) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Alert className="max-w-md rounded-xl" variant="destructive">
-                <AlertCircleIcon />
+                <AlertCircle />
                 <AlertTitle>An error occurred</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
             </Alert>

@@ -11,7 +11,7 @@ import {
     Message,
     PublicUser,
     RegisterUser
-} from "schema"
+} from "@repo/schema"
 import { Value } from "typebox/value"
 import { Static } from "typebox"
 import ky from "ky"

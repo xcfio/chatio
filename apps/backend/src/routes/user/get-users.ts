@@ -1,4 +1,4 @@
-import { ErrorResponse, Nullable, PublicUser, UUID } from "schema"
+import { ErrorResponse, Nullable, PublicUser, UUID } from "@repo/schema"
 import { and, or, ilike, desc, eq } from "drizzle-orm"
 import { toTypeBox, xcf } from "../../function"
 import { db, table } from "../../database"
