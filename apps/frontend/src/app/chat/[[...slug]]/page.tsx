@@ -911,16 +911,7 @@ function User() {
                             >
                                 <Avatar>
                                     {user.avatar && <AvatarImage src={user.avatar} alt={user.username} />}
-                                    <AvatarFallback>
-                                        {user.name.includes(" ")
-                                            ? user.name
-                                                  .split(" ")
-                                                  .map((w) => w[0])
-                                                  .join("")
-                                                  .slice(0, 2)
-                                                  .toUpperCase()
-                                            : user.name?.slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
+                                    <AvatarFallback>{fallback(user.name)}</AvatarFallback>
                                     {online.has(user.id) && (
                                         <AvatarBadge className="bg-green-600 dark:bg-green-800 ring-0" />
                                     )}
