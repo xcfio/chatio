@@ -15,10 +15,17 @@ export async function main() {
     const isDevelopment = process.env.NODE_ENV === "development"
     const fastify = Fastify({
         trustProxy: true,
-        logger: {
-            formatters: { level: (level, number) => ({ level: `${level} (${number})` }) },
-            file: isDevelopment ? "./log.json" : undefined
-        },
+        logger: isDevelopment
+            ? {
+                  transport: {
+                      target: "pino-pretty",
+                      options: {
+                          translateTime: "HH:MM:ss Z",
+                          ignore: "pid,hostname"
+                      }
+                  }
+              }
+            : true,
         schemaErrorFormatter: ValidationErrorHandler
     }).withTypeProvider<TypeBoxTypeProvider>()
 
