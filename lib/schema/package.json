@@ -24,12 +24,12 @@
         "drizzle-orm": "1.0.0-rc.2",
         "postgres": "^3.4.9",
         "socket.io": "^4.8.3",
-        "typebox": "^1.1.35",
+        "typebox": "^1.1.38",
         "typescript": "^6.0.3",
         "uuid": "^14.0.0"
     },
     "devDependencies": {
-        "@types/node": "^25.6.0",
+        "@types/node": "^25.7.0",
         "drizzle-kit": "1.0.0-rc.2"
     }
 }
